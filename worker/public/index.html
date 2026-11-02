@@ -114,7 +114,8 @@ aside .brand{padding:4px 6px 18px;border-bottom:1px solid var(--line);margin-bot
 .loading i{width:8px;height:8px;border-radius:50%;background:var(--blue);animation:pulse 1s infinite alternate}
 .loading i:nth-child(2){animation-delay:.2s}.loading i:nth-child(3){animation-delay:.4s}
 @keyframes pulse{from{opacity:.25}to{opacity:1}}
-@media (prefers-reduced-motion:reduce){.loading i{animation:none}}
+.caret{display:inline-block;width:8px;height:1.05em;background:var(--blue);vertical-align:-.15em;margin-left:2px;border-radius:2px;animation:pulse .6s infinite alternate}
+@media (prefers-reduced-motion:reduce){.loading i,.caret{animation:none}}
 
 .sources{display:grid;gap:12px;margin-top:14px}
 .src{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:16px 18px;display:grid;grid-template-columns:58px 1fr;gap:0 16px;scroll-margin-top:90px;transition:border-color .3s,box-shadow .3s}
@@ -398,15 +399,54 @@ $("#f-ask").onsubmit = async (e) => {
   hb.onclick = () => { page("chat"); t.scrollIntoView({ block: "start", behavior: "smooth" }); };
   h.prepend(hb);
   $("#b-send").disabled = true;
+  const qHtml = `<div class="q"><div>${esc(text)}</div></div>`;
   try {
-    const r = await api("ask", { q: text });
-    t.innerHTML = `<div class="q"><div>${esc(text)}</div></div>` + renderResult(r, id);
+    const r = await askStream(text, (partial, found) => {
+      // Javob yozilgan sari ko'rsatiladi
+      t.innerHTML = qHtml + `<div class="answer">${aiHead("AI JAVOBI", "yozilmoqda…")}${md(partial, id).replace(/(<\/(?:p|li)>(?:<\/[ou]l>)?)$/, '<span class="caret"></span>$1')}</div>` +
+        `<div class="hint" style="text-align:left;margin-top:8px">${found} ta norma topildi — manbalar javob tugagach chiqadi</div>`;
+    });
+    t.innerHTML = qHtml + renderResult(r, id);
     if (r.mode !== "ref") refreshMe().catch(() => {});
   } catch (x) {
     if (x.status === 401) return boot();
     t.innerHTML = `<div class="q"><div>${esc(text)}</div></div><div class="warn">${esc(x.message)}</div>`;
   } finally { $("#b-send").disabled = false; q.focus(); }
 };
+
+/** /api/ask: oddiy JSON (aniq havola, xato) yoki NDJSON oqim (AI javobi) */
+async function askStream(text, onPartial) {
+  const r = await fetch("/api/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ q: text }) });
+  const ct = r.headers.get("content-type") || "";
+  if (!ct.includes("ndjson")) {
+    const j = await r.json().catch(() => ({ error: "Server javob bermadi" }));
+    if (!r.ok) throw Object.assign(new Error(j.error || "Xatolik"), { status: r.status });
+    return j;
+  }
+  const reader = r.body.getReader(); const dec = new TextDecoder();
+  let buf = "", answer = "", found = 0, done = null, last = 0;
+  while (true) {
+    const { value, done: end } = await reader.read();
+    if (end) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split("\n"); buf = lines.pop();
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const ev = JSON.parse(line);
+      if (ev.type === "meta") found = ev.found;
+      else if (ev.type === "delta") { answer += ev.text;
+        const now = performance.now(); if (now - last > 60) { last = now; onPartial(answer, found); } }
+      else if (ev.type === "done") done = ev;
+      else if (ev.type === "error") throw new Error(ev.error);
+    }
+  }
+  if (!done) throw new Error("Javob uzilib qoldi. Qayta urinib ko'ring.");
+  return done;
+}
+
+function aiHead(label, right) {
+  return `<div class="who"><span class="logo"><svg class="i"><use href="#scale"/></svg></span>${label}${right ? `<span style="font-weight:500;letter-spacing:0;margin-left:auto">${esc(right)}</span>` : ""}</div>`;
+}
 
 function md(text, id) {
   const lines = esc(text).split("\n"); let html = "", list = null;
@@ -448,13 +488,15 @@ function srcHtml(s, id, n) {
 }
 
 function renderResult(r, id) {
-  const head = `<div class="who"><span class="logo"><svg class="i"><use href="#scale"/></svg></span>${r.mode === "ref" ? "AMALDAGI TAHRIR" : r.mode === "ai" ? "AI JAVOBI" : "TOPILGAN NORMALAR"}${r.model ? `<span style="font-weight:500;letter-spacing:0;margin-left:auto">${esc(r.model)}</span>` : ""}</div>`;
+  const head = aiHead(r.mode === "ref" ? "AMALDAGI TAHRIR" : r.mode === "ai" ? "AI JAVOBI" : "TOPILGAN NORMALAR", r.model);
   if (r.mode === "ref") {
     if (!r.sources.length) return `<div class="answer">${head}<p>${esc(r.answer)}</p></div>`;
     return `<div class="sources">${r.sources.map((s) => srcHtml(s, id)).join("")}</div>`;
   }
   let h = `<div class="answer">${head}${md(r.answer || "", id)}</div>`;
   if (r.warning) h += `<div class="warn">${esc(r.warning)}</div>`;
+  if (r.timings) { const tm = r.timings;
+    h += `<div class="hint" style="text-align:left;margin-top:8px">Admin: tahlil ${tm.tahlil ?? "—"} s · qidiruv ${tm.qidiruv ?? "—"} s · birinchi so'z ${tm.birinchi_soz ?? "—"} s · jami ${tm.jami ?? "—"} s</div>`; }
   if (r.ai_error) h += `<div class="warn" style="white-space:pre-wrap;font-family:monospace;font-size:.8rem">Admin uchun — Gemini xatosi:\n${esc(r.ai_error)}</div>`;
   const used = r.sources.filter((s) => s.used), rest = r.sources.filter((s) => !s.used);
   if (used.length) h += `<div class="sources">${used.map((s) => srcHtml(s, id, s.n)).join("")}</div>`;

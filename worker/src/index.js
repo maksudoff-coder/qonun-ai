@@ -1,5 +1,5 @@
 import { parseRefs, isPureRef, lookupRef, textSearch, toCyr } from "./lex.js";
-import { analyze, answer, GeminiError } from "./gemini.js";
+import { analyze, answerStream, GeminiError } from "./gemini.js";
 import { hashPassword, verifyPassword, createSession, clearCookie, currentUser } from "./auth.js";
 
 const json = (data, status = 200, headers = {}) =>
@@ -7,12 +7,12 @@ const json = (data, status = 200, headers = {}) =>
 const err = (msg, status = 400) => json({ error: msg }, status);
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const p = url.pathname;
     if (!p.startsWith("/api/")) return env.ASSETS.fetch(request);
     try {
-      return await route(request, env, p);
+      return await route(request, env, p, ctx);
     } catch (e) {
       console.error(e);
       return err("Serverda xatolik: " + (e.message || e), 500);
@@ -20,7 +20,7 @@ export default {
   },
 };
 
-async function route(request, env, p) {
+async function route(request, env, p, ctx) {
   const db = env.DB;
   const method = request.method;
   const body = method === "POST" ? await request.json().catch(() => ({})) : {};
@@ -69,7 +69,7 @@ async function route(request, env, p) {
   }
   if (p === "/api/ask" && method === "POST") {
     try {
-      return await ask(env, user, (body.q || "").trim());
+      return await ask(env, user, (body.q || "").trim(), ctx);
     } catch (e) {
       if (/no such table/.test(String(e.message))) return err("Baza hozir lex.uz'dan yangilanmoqda. Bir necha daqiqadan keyin qayta urinib ko'ring.", 503);
       throw e;
@@ -126,8 +126,11 @@ async function log(db, user, q, mode, sources, ok) {
     .bind(user.id, q.slice(0, 2000), mode, sources.map((s) => s.id).join(","), ok ? 1 : 0).run();
 }
 
-async function ask(env, user, q) {
+async function ask(env, user, q, ctx) {
   const db = env.DB;
+  const t0 = Date.now();
+  const timings = {};
+  const mark = (k) => { timings[k] = +((Date.now() - t0) / 1000).toFixed(1); };
   if (!q) return err("Savol bo'sh");
   if (q.length > 3000) return err("Savol juda uzun (3000 belgigacha)");
 
@@ -161,6 +164,7 @@ async function ask(env, user, q) {
     aiErrors.push("tahlil: " + (e.all ? e.all.join(" | ") : `${e.status || ""} ${String(e.message).slice(0, 300)}`));
     if (e instanceof GeminiError && e.status === 429) aiAvailable = false;
   }
+  mark("tahlil");
 
   // 4) Manbalarni yig'ish
   const seen = new Set(), sources = [];
@@ -179,38 +183,73 @@ async function ask(env, user, q) {
   add(await textSearch(db, plan.plenum_keywords, "plenum", 6), 6);
   add(await textSearch(db, plan.code_keywords, "kodeks", 6), 6);
   const top = sources.slice(0, 16);
+  mark("qidiruv");
 
   if (!top.length) {
     await log(db, user, q, "ai", [], false);
     return json({ mode: "ai", answer: "Bazadan mos norma topilmadi. Savolni boshqacha yoki yuridik atamalar bilan yozib ko'ring.", sources: [] });
   }
 
-  // 5) Javob yozish
-  if (aiAvailable) {
+  const fallback = async () => {
+    await log(db, user, q, "search", top, true);
+    return {
+      mode: "search",
+      answer: "AI hozir javob bera olmadi (limit yoki ulanish muammosi). Quyida bazadan topilgan eng mos normalar.",
+      ai_error: user.is_admin && aiErrors.length ? aiErrors.join("\n") : undefined,
+      sources: top.map((s, i) => ({ ...pub(s), n: i + 1, used: true })),
+    };
+  };
+  if (!aiAvailable) return json(await fallback());
+
+  // 5) Javob yozish — oqim (NDJSON): meta → delta… → done
+  const { readable, writable } = new TransformStream();
+  const w = writable.getWriter();
+  const enc = new TextEncoder();
+  let closed = false;
+  const send = async (o) => {
+    if (closed) return;
+    try { await w.write(enc.encode(JSON.stringify(o) + "\n")); } catch { closed = true; }
+  };
+
+  const work = (async () => {
+    let text = "";
     try {
-      const a = await answer(env, q, top);
-      const usedIdx = [...new Set((a.used || []).map(Number))].filter((i) => i >= 1 && i <= top.length);
-      const text = String(a.answer || "");
-      // Javobdagi [n] havolalarini ham hisobga olamiz
+      await send({ type: "meta", mode: "ai", found: top.length });
+      let res;
+      try {
+        res = await answerStream(env, q, top, async (d) => {
+          if (!text) mark("birinchi_soz");
+          text += d;
+          await send({ type: "delta", text: d });
+        });
+      } catch (e) {
+        if (!(e instanceof GeminiError)) throw e;
+        aiErrors.push("javob: " + (e.all ? e.all.join(" | ") : `${e.status || ""} ${String(e.message).slice(0, 300)}`));
+        if (!text) { await send({ type: "done", ...(await fallback()) }); return; }
+        text += "\n\n_(Javob uzilib qoldi — quyidagi manbalarni to'liq ko'rib chiqing.)_";
+      }
+      mark("jami");
+      if (res?.errors?.length) aiErrors.push("javob (zaxira modelga o'tildi): " + res.errors.join(" | "));
+      const usedIdx = [];
       for (const m of text.matchAll(/\[(\d+)\]/g)) if (+m[1] >= 1 && +m[1] <= top.length && !usedIdx.includes(+m[1])) usedIdx.push(+m[1]);
-      const warn = checkArticles(text, top);
       await log(db, user, q, "ai", top, true);
-      return json({
-        mode: "ai", answer: text, warning: warn, model: a._model,
+      await send({
+        type: "done", mode: "ai", answer: text, warning: checkArticles(text, top), model: res?.model,
+        timings: user.is_admin ? timings : undefined,
+        ai_error: user.is_admin && aiErrors.length ? aiErrors.join("\n") : undefined,
         sources: top.map((s, i) => ({ ...pub(s), n: i + 1, used: usedIdx.includes(i + 1) })),
       });
     } catch (e) {
-      if (!(e instanceof GeminiError)) throw e;
-      aiErrors.push("javob: " + (e.all ? e.all.join(" | ") : `${e.status || ""} ${String(e.message).slice(0, 300)}`));
-      aiAvailable = false;
+      console.error(e);
+      await send({ type: "error", error: "Serverda xatolik: " + (e.message || e) });
+    } finally {
+      closed = true;
+      try { await w.close(); } catch {}
     }
-  }
-  await log(db, user, q, "search", top, true);
-  return json({
-    mode: "search",
-    answer: "AI hozir javob bera olmadi (limit yoki ulanish muammosi). Quyida bazadan topilgan eng mos normalar.",
-    ai_error: user.is_admin && aiErrors.length ? aiErrors.join("\n") : undefined,
-    sources: top.map((s, i) => ({ ...pub(s), n: i + 1, used: true })),
+  })();
+  ctx?.waitUntil(work);
+  return new Response(readable, {
+    headers: { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-cache, no-transform" },
   });
 }
 

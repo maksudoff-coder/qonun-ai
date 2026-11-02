@@ -83,14 +83,105 @@ const ANSWER_SYSTEM = `Сен судья ёрдамчилари ва юрист�
 5. Жавоб қисқа ва аниқ бўлсин: аввал асосий жавоб (1–3 гап), кейин тегишли нормалар қисқача изоҳ билан.
 6. Жавобни савол қайси ёзувда (лотин/кирилл) берилган бўлса, ўша ёзувда ёз.
 7. Бу юридик маслаҳат эмас, маълумот — лекин буни ҳар сафар такрорлама.
-Фақат JSON қайтар: {"answer": "markdown матн", "used": [манба рақамлари]}`;
+Жавобни оддий markdown матн сифатида ёз (JSON эмас). Сарлавҳа (#) ишлатма.`;
 
-export function answer(env, question, sources) {
-  const block = sources.map((s, i) => {
+function sourcesBlock(sources) {
+  return sources.map((s, i) => {
     const where = s.kind === "plenum" ? `Пленум: «${s.doc_title}» (${s.requisites}), ${s.heading}` : `${s.doc_title}, ${s.heading}`;
     const text = s.text.length > 5000 ? s.text.slice(0, 5000) + " …" : s.text;
     return `[${i + 1}] ${where}\n${text}`;
   }).join("\n\n---\n\n");
-  return callWithFallback(env, modelList(env.GEMINI_MODEL, env.GEMINI_FALLBACK_MODELS, env.GEMINI_FAST_MODEL),
-    ANSWER_SYSTEM, `САВОЛ:\n${question}\n\nМАНБАЛАР:\n\n${block}`, 0.2, 25000);
+}
+
+/**
+ * Bitta model bilan streaming: matn bo'laklarini (delta) qaytaruvchi async generator.
+ * firstTokenMs ichida birinchi bo'lak kelmasa — 408 xato (keyingi modelga o'tish uchun).
+ */
+async function* streamModel(env, model, system, user, temperature, firstTokenMs) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), firstTokenMs);
+  let r;
+  try {
+    r = await fetch(`${env.GEMINI_API_BASE || API}/${model}:streamGenerateContent?alt=sse`, {
+      method: "POST",
+      signal: ctrl.signal,
+      headers: { "content-type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: "user", parts: [{ text: user }] }],
+        generationConfig: { temperature },
+      }),
+    });
+  } catch (e) {
+    clearTimeout(timer);
+    if (e.name === "AbortError" || e.name === "TimeoutError")
+      throw new GeminiError(408, `${Math.round(firstTokenMs / 1000)} soniyada javob boshlanmadi`);
+    throw new GeminiError(503, "Gemini'ga ulanib bo'lmadi: " + e.message);
+  }
+  if (!r.ok) { clearTimeout(timer); throw new GeminiError(r.status, (await r.text()).slice(0, 500)); }
+
+  const reader = r.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "", started = false;
+  try {
+    while (true) {
+      let chunk;
+      try { chunk = await reader.read(); }
+      catch (e) {
+        if (!started && (e.name === "AbortError" || e.name === "TimeoutError"))
+          throw new GeminiError(408, `${Math.round(firstTokenMs / 1000)} soniyada javob boshlanmadi`);
+        throw new GeminiError(started ? 599 : 503, "Oqim uzildi: " + e.message);
+      }
+      if (chunk.done) break;
+      buf += dec.decode(chunk.value, { stream: true });
+      const events = buf.split(/\r?\n\r?\n/);
+      buf = events.pop();
+      for (const ev of events) {
+        const data = ev.split(/\r?\n/).filter((l) => l.startsWith("data:")).map((l) => l.slice(5).trim()).join("");
+        if (!data) continue;
+        let j;
+        try { j = JSON.parse(data); } catch { continue; }
+        if (j.error) throw new GeminiError(j.error.code || 500, j.error.message || "Gemini xatosi");
+        const text = j.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
+        if (text) {
+          if (!started) { started = true; clearTimeout(timer); }
+          yield text;
+        }
+      }
+    }
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!started) throw new GeminiError(502, "Model bo'sh javob qaytardi");
+}
+
+/**
+ * Manbalar asosida javobni streaming bilan yozadi. onDelta(matn) har bir bo'lakda chaqiriladi.
+ * Model birinchi bo'lakni bermasa — zaxira modelga o'tadi. Natija: { model, errors }.
+ */
+export async function answerStream(env, question, sources, onDelta) {
+  const models = modelList(env.GEMINI_MODEL, env.GEMINI_FALLBACK_MODELS, env.GEMINI_FAST_MODEL);
+  const user = `САВОЛ:\n${question}\n\nМАНБАЛАР:\n\n${sourcesBlock(sources)}`;
+  const errors = [];
+  for (const [i, model] of models.entries()) {
+    for (let attempt = 0; attempt < (i === 0 ? 2 : 1); attempt++) {
+      const gen = streamModel(env, model, ANSWER_SYSTEM, user, 0.2, 20000);
+      let first;
+      try {
+        first = await gen.next(); // birinchi bo'lak kelguncha — xato bo'lsa keyingi modelga o'tamiz
+      } catch (e) {
+        if (!(e instanceof GeminiError)) throw e;
+        errors.push(`${model}: ${e.status} ${String(e.message).slice(0, 160)}`);
+        if (!retryable(e.status)) throw Object.assign(e, { all: errors });
+        if (e.status === 408) break;
+        if (attempt === 0 && i === 0) await new Promise((r) => setTimeout(r, 1200));
+        continue;
+      }
+      // Javob boshlandi — shu model bilan oxirigacha davom etamiz
+      if (!first.done) await onDelta(first.value);
+      for await (const d of gen) await onDelta(d);
+      return { model, errors };
+    }
+  }
+  throw Object.assign(new GeminiError(503, errors.join("\n")), { all: errors });
 }
