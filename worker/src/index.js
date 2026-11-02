@@ -158,7 +158,7 @@ async function ask(env, user, q) {
       plenum_keywords: [...(a.plenum_keywords || []), q],
     };
   } catch (e) {
-    aiErrors.push(`tahlil (${env.GEMINI_FAST_MODEL}): ${e.status || ""} ${String(e.message).slice(0, 300)}`);
+    aiErrors.push("tahlil: " + (e.all ? e.all.join(" | ") : `${e.status || ""} ${String(e.message).slice(0, 300)}`));
     if (e instanceof GeminiError && e.status === 429) aiAvailable = false;
   }
 
@@ -201,7 +201,7 @@ async function ask(env, user, q) {
       });
     } catch (e) {
       if (!(e instanceof GeminiError)) throw e;
-      aiErrors.push(`javob (${env.GEMINI_MODEL}): ${e.status || ""} ${String(e.message).slice(0, 300)}`);
+      aiErrors.push("javob: " + (e.all ? e.all.join(" | ") : `${e.status || ""} ${String(e.message).slice(0, 300)}`));
       aiAvailable = false;
     }
   }

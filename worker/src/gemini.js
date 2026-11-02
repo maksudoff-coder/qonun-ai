@@ -6,11 +6,12 @@ export class GeminiError extends Error {
   constructor(status, msg) { super(msg); this.status = status; }
 }
 
-async function call(env, model, system, user, temperature = 0.2) {
+async function call(env, model, system, user, temperature = 0.2, timeoutMs = 35000) {
   let r;
   try {
     r = await fetch(`${env.GEMINI_API_BASE || API}/${model}:generateContent`, {
       method: "POST",
+      signal: AbortSignal.timeout(timeoutMs),
       headers: { "content-type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
@@ -19,6 +20,8 @@ async function call(env, model, system, user, temperature = 0.2) {
       }),
     });
   } catch (e) {
+    if (e.name === "TimeoutError" || e.name === "AbortError")
+      throw new GeminiError(408, `${Math.round(timeoutMs / 1000)} soniyada javob kelmadi`);
     throw new GeminiError(503, "Gemini'ga ulanib bo'lmadi: " + e.message);
   }
   if (!r.ok) throw new GeminiError(r.status, (await r.text()).slice(0, 500));
@@ -28,24 +31,27 @@ async function call(env, model, system, user, temperature = 0.2) {
 }
 
 // Vaqtinchalik xatolar (band, limit, server xatosi) — boshqa modelga o'tish mumkin
-const RETRYABLE = new Set([429, 500, 502, 503, 504]);
+const retryable = (status) => status === 408 || status === 429 || status >= 500;
 
 /** Modellar ro'yxatini navbat bilan sinaydi: asosiy model band bo'lsa — bir marta qayta urinish, keyin zaxira model. */
-async function callWithFallback(env, models, system, user, temperature) {
-  let last;
+async function callWithFallback(env, models, system, user, temperature, timeoutMs) {
+  const errors = [];
   for (const [i, model] of models.entries()) {
+    // Asosiy model tez xato qaytarsa (band/limit) — bir marta qayta urinamiz; vaqt tugasa — darhol keyingi modelga
     for (let attempt = 0; attempt < (i === 0 ? 2 : 1); attempt++) {
       try {
-        const out = await call(env, model, system, user, temperature);
-        return { ...out, _model: model };
+        const out = await call(env, model, system, user, temperature, timeoutMs);
+        return { ...out, _model: model, _errors: errors };
       } catch (e) {
-        last = e;
-        if (!(e instanceof GeminiError) || !RETRYABLE.has(e.status)) throw e;
+        if (!(e instanceof GeminiError)) throw e;
+        errors.push(`${model}: ${e.status} ${String(e.message).slice(0, 160)}`);
+        if (!retryable(e.status)) throw Object.assign(e, { all: errors });
+        if (e.status === 408) break;
         if (attempt === 0 && i === 0) await new Promise((r) => setTimeout(r, 1500));
       }
     }
   }
-  throw last;
+  throw Object.assign(new GeminiError(503, errors.join("\n")), { all: errors });
 }
 
 const modelList = (...names) => [...new Set(names.flatMap((n) => String(n || "").split(",")).map((s) => s.trim()).filter(Boolean))];
@@ -64,7 +70,7 @@ const ANALYZE_SYSTEM = `Сен Ўзбекистон қонунчилиги бў�
 - Ҳеч қачон изоҳ ёзма, фақат JSON.`;
 
 export function analyze(env, question) {
-  return callWithFallback(env, modelList(env.GEMINI_FAST_MODEL, env.GEMINI_FALLBACK_MODELS), ANALYZE_SYSTEM, question, 0);
+  return callWithFallback(env, modelList(env.GEMINI_FAST_MODEL, env.GEMINI_FALLBACK_MODELS), ANALYZE_SYSTEM, question, 0, 20000);
 }
 
 const ANSWER_SYSTEM = `Сен судья ёрдамчилари ва юристлар учун қонунчилик бўйича ёрдамчисан.
@@ -86,5 +92,5 @@ export function answer(env, question, sources) {
     return `[${i + 1}] ${where}\n${text}`;
   }).join("\n\n---\n\n");
   return callWithFallback(env, modelList(env.GEMINI_MODEL, env.GEMINI_FALLBACK_MODELS, env.GEMINI_FAST_MODEL),
-    ANSWER_SYSTEM, `САВОЛ:\n${question}\n\nМАНБАЛАР:\n\n${block}`, 0.2);
+    ANSWER_SYSTEM, `САВОЛ:\n${question}\n\nМАНБАЛАР:\n\n${block}`, 0.2, 25000);
 }
