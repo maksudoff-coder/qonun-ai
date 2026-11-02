@@ -59,7 +59,10 @@ async function route(request, env, p) {
     const info = await db.prepare(
       `SELECT (SELECT COUNT(*) FROM docs WHERE kind='kodeks') AS codes, (SELECT COUNT(*) FROM docs WHERE kind='plenum') AS plenums,
        (SELECT COUNT(*) FROM chunks) AS chunks, (SELECT value FROM meta WHERE key='built') AS built`).first();
-    return json({ login: user.login, name: user.name, is_admin: !!user.is_admin, base: info });
+    const today = await db.prepare(
+      "SELECT COUNT(*) AS n FROM log WHERE user_id=? AND mode='ai' AND created >= date('now')").bind(user.id).first("n");
+    return json({ login: user.login, name: user.name, is_admin: !!user.is_admin, base: info,
+      today_ai: today, daily_limit: +(env.DAILY_LIMIT || 150) });
   }
   if (p === "/api/ask" && method === "POST") return ask(env, user, (body.q || "").trim());
 

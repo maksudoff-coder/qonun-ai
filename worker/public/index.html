@@ -3,189 +3,314 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Қонун ёрдамчиси</title>
+<title>Qonun yordamchisi</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=PT+Serif:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#F5F7F9; --sheet:#FFFFFF; --ink:#1B2A44; --ink-2:#4A5873; --rule:#D9DFE7;
-  --seal:#0E6E57; --seal-bg:#E6F2EE; --warn:#8A5A00; --warn-bg:#FFF4DC; --err:#A1262B;
-  --serif:"PT Serif",Georgia,serif; --sans:"IBM Plex Sans",system-ui,sans-serif;
+  --bg:#F3F6FB; --card:#FFFFFF; --line:#E4E9F2; --ink:#111A2E; --ink-2:#5B6680; --ink-3:#8A94AA;
+  --blue:#3557E0; --blue-2:#4C6CF0; --blue-bg:#EAF0FF; --blue-line:#D6E0FF;
+  --green:#12936A; --green-bg:#E3F6EE; --amber:#B7791F; --amber-bg:#FFF4DE; --violet:#7C4DE8; --violet-bg:#F0EAFF;
+  --red:#C2353A;
+  --shadow:0 1px 2px rgba(17,26,46,.04),0 8px 24px rgba(17,26,46,.05);
+  --sans:Inter,system-ui,sans-serif; --serif:"PT Serif",Georgia,serif;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --paper:#12192A; --sheet:#1A2337; --ink:#E4E9F2; --ink-2:#A7B2C6; --rule:#2C3852;
-  --seal:#5CC3A3; --seal-bg:#173A33; --warn:#F2C26B; --warn-bg:#3A2F17; --err:#FF8A8F;}}
+:root[data-theme="dark"]{
+  --bg:#0E1424; --card:#151D31; --line:#243049; --ink:#E7ECF6; --ink-2:#A3AEC4; --ink-3:#7A86A0;
+  --blue:#6F8BFF; --blue-2:#8299FF; --blue-bg:#1C2747; --blue-line:#2C3A66;
+  --green:#41C796; --green-bg:#133229; --amber:#F0B85A; --amber-bg:#33280F; --violet:#A989FF; --violet-bg:#261D45;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 var(--sans)}
-button,input,textarea{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--seal);outline-offset:2px}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans)}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .hide{display:none!important}
-a{color:var(--seal)}
-
-/* ---------- header ---------- */
-header{display:flex;align-items:baseline;gap:16px;padding:14px 20px;border-bottom:1px solid var(--rule);background:var(--sheet);position:sticky;top:0;z-index:5}
-header h1{font:700 1.15rem/1 var(--serif);margin:0;letter-spacing:.01em}
-header .base{color:var(--ink-2);font-size:.85rem;flex:1}
-header nav{display:flex;gap:4px}
-.link{background:none;border:0;padding:6px 10px;border-radius:6px;cursor:pointer;color:var(--ink-2)}
-.link:hover{background:var(--paper);color:var(--ink)}
+a{color:var(--blue)}
+svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
 /* ---------- auth ---------- */
-.auth{max-width:380px;margin:12vh auto;padding:0 16px}
-.auth h2{font:700 1.6rem/1.2 var(--serif);margin:0 0 6px}
-.auth p{color:var(--ink-2);margin:0 0 22px}
+.auth-wrap{min-height:100vh;display:grid;place-items:center;padding:20px}
+.auth{width:100%;max-width:400px;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:30px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,var(--blue),#1F3BB0);color:#fff}
+.logo svg{width:22px;height:22px}
+.brand small{display:block;font-size:.68rem;font-weight:700;color:var(--ink-3);letter-spacing:.06em}
+.brand b{display:block;font-weight:700;font-size:.95rem;line-height:1.2}
+.auth h2{font-size:1.45rem;font-weight:800;margin:24px 0 6px;letter-spacing:-.01em}
+.auth p{color:var(--ink-2);margin:0 0 20px}
 .field{display:block;margin-bottom:14px}
-.field span{display:block;font-size:.85rem;color:var(--ink-2);margin-bottom:4px}
-.field input{width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;background:var(--sheet)}
-.btn{background:var(--ink);color:var(--paper);border:0;border-radius:8px;padding:10px 18px;cursor:pointer;font-weight:500}
+.field span{display:block;font-size:.85rem;font-weight:500;color:var(--ink-2);margin-bottom:6px}
+.field input{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.field input:focus{border-color:var(--blue);outline:none;background:var(--card)}
+.btn{display:inline-flex;align-items:center;gap:8px;justify-content:center;background:var(--blue);color:#fff;border:0;border-radius:10px;padding:11px 18px;cursor:pointer;font-weight:600}
+.btn:hover{background:var(--blue-2)}
 .btn:disabled{opacity:.5;cursor:default}
-.msg{color:var(--err);font-size:.9rem;min-height:1.4em;margin-top:8px}
+.btn.wide{width:100%}
+.msg{color:var(--red);font-size:.88rem;min-height:1.3em;margin-top:10px}
+
+/* ---------- layout ---------- */
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+aside{background:var(--card);border-right:1px solid var(--line);padding:18px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:6px}
+aside .brand{padding:4px 6px 18px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.nav-h{font-size:.7rem;font-weight:700;color:var(--ink-3);letter-spacing:.06em;padding:10px 10px 6px}
+.nav{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:var(--ink-2);background:none;border:0;cursor:pointer;width:100%;text-align:left;font-weight:500}
+.nav:hover{background:var(--bg);color:var(--ink)}
+.nav.on{background:var(--blue);color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(53,87,224,.25)}
+.history{flex:1;overflow:auto;margin:0 -4px;padding:0 4px}
+.history button{display:block;width:100%;text-align:left;background:none;border:0;padding:7px 12px;border-radius:8px;color:var(--ink-2);font-size:.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.history button:hover{background:var(--bg);color:var(--ink)}
+.history .none{font-size:.84rem;color:var(--ink-3);padding:4px 12px}
+
+.main{min-width:0;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:10px;padding:14px 28px;background:color-mix(in srgb,var(--card) 70%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+.top .menu-btn{display:none}
+.m-title{display:none}
+.base-pill{display:flex;align-items:center;gap:8px;color:var(--ink-2);font-size:.88rem;flex:1;min-width:0}
+.base-pill span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex:none;box-shadow:0 0 0 3px var(--green-bg)}
+.chip{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer;font-weight:600;font-size:.88rem}
+.chip:hover{border-color:var(--blue-line)}
+.chip.icon{padding:8px}
+.user{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 14px 6px 6px}
+.avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--violet);color:#fff;font-weight:700}
+.user small{display:block;font-size:.66rem;font-weight:700;color:var(--ink-3);letter-spacing:.06em;text-align:right}
+.user b{display:block;font-size:.9rem}
+
+.content{width:100%;max-width:1000px;margin:0 auto;padding:30px 28px 190px}
+.date{font-size:.75rem;font-weight:700;color:var(--ink-3);letter-spacing:.06em}
+.hello{font-size:1.9rem;font-weight:800;letter-spacing:-.02em;margin:6px 0 14px}
+.hello span{color:var(--blue)}
+.notice{background:var(--blue-bg);border:1px solid var(--blue-line);color:var(--ink);border-radius:12px;padding:11px 16px;font-size:.92rem}
+.notice b{color:var(--blue)}
+.lead{color:var(--ink-2);max-width:68ch;margin:14px 0 22px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px}
+.tile{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;margin-bottom:16px}
+.tile.b{background:var(--blue-bg);color:var(--blue)} .tile.a{background:var(--amber-bg);color:var(--amber)} .tile.g{background:var(--green-bg);color:var(--green)}
+.stat b{display:block;font-size:1.7rem;font-weight:700;line-height:1}
+.stat span{display:block;font-size:.84rem;color:var(--ink-3);margin-top:6px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:20px 22px}
+.panel h3{margin:0 0 4px;font-size:1rem;font-weight:700}
+.panel .sub{color:var(--ink-3);font-size:.86rem;margin:0 0 14px}
+.examples{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.examples button{display:flex;align-items:center;gap:10px;text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:12px 14px;cursor:pointer;font-weight:500;font-size:.9rem}
+.examples button:hover{border-color:var(--blue);background:var(--blue-bg)}
+.examples svg{color:var(--blue)}
 
 /* ---------- chat ---------- */
-main{max-width:820px;margin:0 auto;padding:24px 16px 180px}
-.empty{padding:40px 0 10px}
-.empty h2{font:400 2rem/1.25 var(--serif);margin:0 0 14px;max-width:22ch}
-.empty p{color:var(--ink-2);max-width:60ch;margin:0 0 18px}
-.examples{display:flex;flex-wrap:wrap;gap:8px}
-.examples button{border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:6px 14px;cursor:pointer;font-size:.92rem}
-.examples button:hover{border-color:var(--seal)}
-
-.turn{margin:30px 0;scroll-margin-top:80px}
-.src{scroll-margin-top:80px}
-.q{font:400 1.25rem/1.4 var(--serif);margin:0 0 14px;padding-left:14px;border-left:3px solid var(--ink)}
-.answer{background:var(--sheet);border:1px solid var(--rule);border-radius:10px;padding:16px 20px}
+.turn{margin:0 0 28px;scroll-margin-top:90px}
+.q{display:flex;justify-content:flex-end;margin-bottom:14px}
+.q div{background:var(--blue);color:#fff;border-radius:16px 16px 4px 16px;padding:11px 16px;max-width:75%;font-weight:500;white-space:pre-wrap}
+.answer{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 22px}
+.answer .who{display:flex;align-items:center;gap:8px;font-size:.78rem;font-weight:700;color:var(--ink-3);letter-spacing:.04em;margin-bottom:10px}
+.answer .who .logo{width:24px;height:24px;border-radius:7px}.answer .who .logo svg{width:14px;height:14px}
 .answer p{margin:0 0 .7em}.answer p:last-child{margin:0}
 .answer ul,.answer ol{margin:0 0 .7em;padding-left:1.3em}
-.cite{display:inline-block;min-width:1.5em;text-align:center;font-size:.75em;font-weight:600;color:var(--seal);background:var(--seal-bg);border-radius:4px;padding:0 4px;margin:0 1px;cursor:pointer;vertical-align:.15em;text-decoration:none}
-.warn{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:10px 14px;margin-top:12px;font-size:.92rem}
-.note{color:var(--ink-2);font-size:.85rem;margin-top:10px}
-.loading{color:var(--ink-2);font-style:italic;font-family:var(--serif)}
+.cite{display:inline-grid;place-items:center;min-width:20px;height:20px;font-size:.72rem;font-weight:700;color:var(--blue);background:var(--blue-bg);border-radius:6px;padding:0 5px;margin:0 2px;cursor:pointer;vertical-align:.1em;text-decoration:none}
+.warn{background:var(--amber-bg);color:var(--amber);border-radius:12px;padding:11px 16px;margin-top:12px;font-size:.9rem;font-weight:500}
+.loading{display:flex;align-items:center;gap:10px;color:var(--ink-3)}
+.loading i{width:8px;height:8px;border-radius:50%;background:var(--blue);animation:pulse 1s infinite alternate}
+.loading i:nth-child(2){animation-delay:.2s}.loading i:nth-child(3){animation-delay:.4s}
+@keyframes pulse{from{opacity:.25}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.loading i{animation:none}}
 
-/* Manba: kodeks/Plenum ko'chirmasi — chap hoshiyada katta raqam */
-.sources{margin-top:18px}
-.src{display:grid;grid-template-columns:64px 1fr;gap:0 14px;padding:14px 0;border-top:1px solid var(--rule)}
-.src:target,.src.flash{background:var(--seal-bg);border-radius:8px}
-.num{font:700 1.9rem/1 var(--serif);text-align:right;color:var(--ink);padding-top:2px;word-break:break-all}
-.num small{display:block;font:500 .7rem/1.3 var(--sans);color:var(--ink-2);margin-top:4px}
-.src.plenum .num{color:var(--seal)}
-.src h3{font:700 1rem/1.35 var(--serif);margin:0 0 2px}
-.src .doc{font-size:.85rem;color:var(--ink-2);margin:0 0 8px}
-.src .body{font:400 1rem/1.65 var(--serif);white-space:pre-line;max-width:72ch}
+.sources{display:grid;gap:12px;margin-top:14px}
+.src{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:16px 18px;display:grid;grid-template-columns:58px 1fr;gap:0 16px;scroll-margin-top:90px;transition:border-color .3s,box-shadow .3s}
+.src.flash{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-bg)}
+.num{width:58px;height:58px;border-radius:14px;background:var(--blue-bg);color:var(--blue);display:grid;place-content:center;text-align:center}
+.num b{font-size:1.15rem;font-weight:800;line-height:1.1;word-break:break-all}
+.num small{font-size:.62rem;font-weight:600;opacity:.8}
+.src.plenum .num{background:var(--green-bg);color:var(--green)}
+.src h4{margin:0 0 2px;font-size:.98rem;font-weight:700;line-height:1.35}
+.src h4 .n{color:var(--ink-3);font-weight:600;margin-right:4px}
+.src .doc{font-size:.84rem;color:var(--ink-3);margin:0 0 10px}
+.src .body{font:400 1rem/1.7 var(--serif);white-space:pre-line;max-width:74ch}
 .src .body.clamp{display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
-.src .acts{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;font-size:.88rem}
-.src .acts button{background:none;border:0;padding:0;color:var(--seal);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
-.src .changes{font-size:.85rem;color:var(--ink-2);white-space:pre-line;margin-top:8px;border-left:2px solid var(--rule);padding-left:10px}
-.src .tag{font-size:.75rem;color:var(--ink-2)}
-.others summary{cursor:pointer;color:var(--ink-2);font-size:.9rem;padding:10px 0}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.acts button,.acts a{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:5px 10px;font-size:.82rem;font-weight:600;color:var(--ink-2);cursor:pointer;text-decoration:none}
+.acts button:hover,.acts a:hover{border-color:var(--blue-line);color:var(--blue)}
+.acts svg.i{width:14px;height:14px}
+.changes{font-size:.84rem;color:var(--ink-2);white-space:pre-line;margin-top:10px;background:var(--bg);border-radius:10px;padding:10px 12px}
+.others{margin-top:12px}
+.others summary{cursor:pointer;color:var(--ink-2);font-size:.9rem;font-weight:600;padding:8px 2px}
+.others .sources{margin-top:6px}
 
-/* ---------- input ---------- */
-.composer{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(transparent,var(--paper) 28%);padding:28px 16px 16px}
-.composer form{max-width:820px;margin:0 auto;display:flex;gap:8px;align-items:flex-end;background:var(--sheet);border:1px solid var(--rule);border-radius:12px;padding:8px 8px 8px 14px}
-.composer textarea{flex:1;border:0;resize:none;background:none;max-height:180px;padding:6px 0;outline:none}
-.composer .hint{max-width:820px;margin:6px auto 0;font-size:.78rem;color:var(--ink-2)}
+/* ---------- composer ---------- */
+.composer{position:fixed;left:240px;right:0;bottom:0;padding:26px 28px 16px;background:linear-gradient(transparent,var(--bg) 30%);z-index:5}
+.composer form{max-width:944px;margin:0 auto;display:flex;gap:10px;align-items:flex-end;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:8px 8px 8px 16px}
+.composer form:focus-within{border-color:var(--blue-line);box-shadow:0 0 0 3px var(--blue-bg)}
+.composer textarea{flex:1;border:0;resize:none;background:none;max-height:180px;padding:8px 0;outline:none}
+.hint{max-width:944px;margin:8px auto 0;font-size:.76rem;color:var(--ink-3);text-align:center}
 
 /* ---------- admin ---------- */
-.admin table{width:100%;border-collapse:collapse;font-size:.93rem;margin-bottom:28px}
-.admin th,.admin td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--rule)}
-.admin th{color:var(--ink-2);font-weight:500}
-.admin form{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;max-width:520px}
-.admin h2{font:700 1.3rem var(--serif)}
+.table{width:100%;border-collapse:collapse;font-size:.9rem}
+.table th,.table td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line)}
+.table th{color:var(--ink-3);font-weight:600;font-size:.78rem}
+.badge{display:inline-block;font-size:.75rem;font-weight:600;border-radius:999px;padding:2px 9px}
+.badge.on{background:var(--green-bg);color:var(--green)} .badge.off{background:var(--bg);color:var(--ink-3)}
+.mini{background:none;border:1px solid var(--line);border-radius:8px;padding:4px 9px;font-size:.8rem;font-weight:600;cursor:pointer;color:var(--ink-2)}
+.mini:hover{color:var(--blue);border-color:var(--blue-line)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
 
-@media (max-width:600px){
-  header{flex-wrap:wrap;gap:4px 12px;padding:10px 12px}
-  header .base{display:none}
-  header h1{flex:1}
-  header nav{width:100%;justify-content:flex-start;margin-left:-10px}
-  .link{padding:4px 10px;font-size:.9rem}
-  .composer{padding:20px 10px 10px}
-  .composer .hint{font-size:.72rem}
-  .src{grid-template-columns:46px 1fr}.num{font-size:1.4rem}
-  .empty h2{font-size:1.6rem}
-  .admin form{grid-template-columns:1fr}
+/* ---------- mobil ---------- */
+@media (max-width:860px){
+  .app{grid-template-columns:1fr}
+  aside{position:fixed;left:0;top:0;z-index:30;width:260px;transform:translateX(-100%);transition:transform .25s;box-shadow:var(--shadow)}
+  aside.open{transform:none}
+  .scrim{position:fixed;inset:0;background:rgba(10,16,30,.35);z-index:25}
+  .top .menu-btn{display:inline-flex}
+  .m-title{display:block;flex:1;font-weight:700}
+  .top{padding:10px 14px}
+  .base-pill,.user div{display:none}
+  .user{padding:4px}
+  .content{padding:22px 16px 190px}
+  .stats{grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .stat{padding:12px}.tile{margin-bottom:10px;width:32px;height:32px}.stat b{font-size:1.3rem}.stat span{font-size:.74rem}
+  .examples,.form-grid{grid-template-columns:1fr}
+  .hello{font-size:1.5rem}
+  .composer{left:0;padding:20px 10px 10px}
+  .src{grid-template-columns:1fr;gap:10px}
+  .num{width:auto;height:auto;place-content:start;display:inline-flex;gap:6px;align-items:baseline;padding:5px 10px;border-radius:8px;justify-self:start}
+  .q div{max-width:90%}
 }
-@media (prefers-reduced-motion:no-preference){.src.flash{transition:background .6s}}
 </style>
 </head>
 <body>
 
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="scale" viewBox="0 0 24 24"><path d="M12 3v18M7 21h10M5 7h14M12 5l-7 2M12 5l7 2M5 7l-3 7a3 3 0 0 0 6 0zM19 7l-3 7a3 3 0 0 0 6 0z"/></symbol>
+  <symbol id="chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></symbol>
+  <symbol id="users" viewBox="0 0 24 24"><path d="M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 20v-1a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+  <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></symbol>
+  <symbol id="gavel" viewBox="0 0 24 24"><path d="M14 13l-7.5 7.5a2.1 2.1 0 0 1-3-3L11 10M16 16l6-6M8 8l6-6M9 7l8 8M21 11l-8-8"/></symbol>
+  <symbol id="spark" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></symbol>
+  <symbol id="send" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></symbol>
+  <symbol id="menu" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></symbol>
+  <symbol id="copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="ext" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></symbol>
+  <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></symbol>
+  <symbol id="expand" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+</svg>
+
 <!-- Birinchi sozlash -->
-<section id="v-setup" class="auth hide">
+<div id="v-setup" class="auth-wrap hide"><div class="auth">
+  <div class="brand"><div class="logo"><svg class="i"><use href="#scale"/></svg></div><div><small>QONUN</small><b>Qonun yordamchisi</b></div></div>
   <h2>Birinchi sozlash</h2>
-  <p>Admin akkauntini yarating. Sozlash kodi Cloudflare'dagi ADMIN_SETUP_CODE qiymati.</p>
+  <p>Admin akkauntini yarating. Sozlash kodi — GitHub'dagi ADMIN_SETUP_CODE qiymati.</p>
   <form id="f-setup">
     <label class="field"><span>Sozlash kodi</span><input name="code" required autocomplete="off"></label>
     <label class="field"><span>Ism</span><input name="name" required></label>
     <label class="field"><span>Login</span><input name="login" required autocomplete="username"></label>
     <label class="field"><span>Parol (kamida 8 belgi)</span><input name="password" type="password" minlength="8" required autocomplete="new-password"></label>
-    <button class="btn">Admin yaratish</button>
+    <button class="btn wide">Admin yaratish</button>
     <div class="msg"></div>
   </form>
-</section>
+</div></div>
 
 <!-- Kirish -->
-<section id="v-login" class="auth hide">
-  <h2>Қонун ёрдамчиси</h2>
+<div id="v-login" class="auth-wrap hide"><div class="auth">
+  <div class="brand"><div class="logo"><svg class="i"><use href="#scale"/></svg></div><div><small>QONUN</small><b>Qonun yordamchisi</b></div></div>
+  <h2>Tizimga kirish</h2>
   <p>Kodekslar va Oliy sud Plenumi qarorlari — lex.uz'dagi amaldagi tahrirda.</p>
   <form id="f-login">
     <label class="field"><span>Login</span><input name="login" required autocomplete="username"></label>
     <label class="field"><span>Parol</span><input name="password" type="password" required autocomplete="current-password"></label>
-    <button class="btn">Kirish</button>
+    <button class="btn wide">Kirish</button>
     <div class="msg"></div>
   </form>
-</section>
+</div></div>
 
 <!-- Asosiy -->
-<div id="v-app" class="hide">
-  <header>
-    <h1>Қонун ёрдамчиси</h1>
-    <span class="base" id="base-info"></span>
-    <nav>
-      <button class="link hide" id="b-admin">Foydalanuvchilar</button>
-      <button class="link" id="b-new">Yangi chat</button>
-      <button class="link" id="b-logout">Chiqish</button>
-    </nav>
-  </header>
+<div id="v-app" class="app hide">
+  <aside id="side">
+    <div class="brand"><div class="logo"><svg class="i"><use href="#scale"/></svg></div><div><small>QONUN</small><b>Qonun yordamchisi</b></div></div>
+    <div class="nav-h">ASOSIY</div>
+    <button class="nav on" id="n-chat"><svg class="i"><use href="#chat"/></svg>Savol-javob</button>
+    <button class="nav" id="n-new"><svg class="i"><use href="#plus"/></svg>Yangi chat</button>
+    <button class="nav hide" id="n-admin"><svg class="i"><use href="#users"/></svg>Foydalanuvchilar</button>
+    <div class="nav-h">BUGUNGI SAVOLLAR</div>
+    <div class="history" id="history"><div class="none">Hali savol berilmagan</div></div>
+    <button class="nav" id="n-logout"><svg class="i"><use href="#out"/></svg>Chiqish</button>
+  </aside>
+  <div class="scrim hide" id="scrim"></div>
 
-  <main id="chat">
-    <div class="empty" id="empty">
-      <h2>Modda raqamini yoki holatni yozing</h2>
-      <p>Modda raqami yozilsa — amaldagi matni darhol chiqadi. Holat yozilsa — unga tegishli kodeks moddalari va Plenum bandlari topiladi, javobda har bir fikrning manbasi ko'rsatiladi.</p>
-      <div class="examples">
-        <button>JK 104</button>
-        <button>JPK 497-modda</button>
-        <button>Zararni ixtiyoriy qoplash jazoni yengillashtiradimi?</button>
-        <button>Takroran o'g'rilik qaysi qism bilan kvalifikatsiya qilinadi?</button>
+  <div class="main">
+    <div class="top">
+      <button class="chip icon menu-btn" id="b-menu" aria-label="Menyu"><svg class="i"><use href="#menu"/></svg></button>
+      <b class="m-title">Qonun yordamchisi</b>
+      <div class="base-pill"><i class="dot"></i><span id="base-info">Baza yuklanmoqda…</span></div>
+      <button class="chip icon" id="b-theme" aria-label="Rejimni almashtirish"><svg class="i"><use href="#sun"/></svg></button>
+      <div class="user"><span class="avatar" id="u-av">?</span><div><small id="u-role">FOYDALANUVCHI</small><b id="u-name"></b></div></div>
+    </div>
+
+    <div class="content" id="chat">
+      <div id="welcome">
+        <div class="date" id="today"></div>
+        <h1 class="hello">Xush kelibsiz, <span id="hello-name"></span></h1>
+        <div class="notice" id="notice"></div>
+        <p class="lead">Modda raqamini yozing — amaldagi matni darhol chiqadi. Holatni yozing — unga tegishli kodeks moddalari va Plenum bandlari topiladi, javobdagi har bir fikr manbasi bilan ko'rsatiladi.</p>
+        <div class="stats">
+          <div class="stat"><div class="tile b"><svg class="i"><use href="#book"/></svg></div><b id="s-codes">—</b><span>Kodekslar</span></div>
+          <div class="stat"><div class="tile g"><svg class="i"><use href="#gavel"/></svg></div><b id="s-plen">—</b><span>Plenum qarorlari</span></div>
+          <div class="stat"><div class="tile a"><svg class="i"><use href="#clock"/></svg></div><b id="s-today">—</b><span>Bugungi AI so'rovlar</span></div>
+        </div>
+        <div class="panel">
+          <h3>Namunalar</h3>
+          <p class="sub">Bosing — savol darhol yuboriladi</p>
+          <div class="examples">
+            <button><svg class="i"><use href="#book"/></svg>JK 104</button>
+            <button><svg class="i"><use href="#book"/></svg>JPK 497-modda</button>
+            <button><svg class="i"><use href="#spark"/></svg>Zararni ixtiyoriy qoplash jazoni yengillashtiradimi?</button>
+            <button><svg class="i"><use href="#spark"/></svg>Takroran o'g'rilik qaysi qism bilan kvalifikatsiya qilinadi?</button>
+          </div>
+        </div>
+      </div>
+      <div id="turns"></div>
+    </div>
+
+    <div class="content hide" id="admin">
+      <div class="date">BOSHQARUV</div>
+      <h1 class="hello">Foydalanuvchilar</h1>
+      <div class="panel" style="margin-bottom:18px;overflow-x:auto">
+        <table class="table"><thead><tr><th>Ism</th><th>Login</th><th>Savollar</th><th>Holat</th><th></th></tr></thead><tbody id="users"></tbody></table>
+      </div>
+      <div class="panel">
+        <h3>Yangi foydalanuvchi</h3>
+        <p class="sub">Hamkasbingiz uchun login va parol yarating</p>
+        <form id="f-user" class="form-grid">
+          <label class="field"><span>Ism</span><input name="name" required></label>
+          <label class="field"><span>Login</span><input name="login" required></label>
+          <label class="field"><span>Parol (kamida 8 belgi)</span><input name="password" minlength="8" required></label>
+          <label class="field" style="align-self:end"><span><input type="checkbox" name="is_admin" style="width:auto"> Admin huquqi</span></label>
+          <div><button class="btn">Qo'shish</button><div class="msg"></div></div>
+        </form>
       </div>
     </div>
-    <div id="turns"></div>
-  </main>
 
-  <section id="v-admin" class="hide admin" style="max-width:820px;margin:0 auto;padding:24px 16px 60px">
-    <h2>Foydalanuvchilar</h2>
-    <table><thead><tr><th>Ism</th><th>Login</th><th>Savollar</th><th>Holat</th><th></th></tr></thead><tbody id="users"></tbody></table>
-    <h2>Yangi foydalanuvchi</h2>
-    <form id="f-user">
-      <label class="field"><span>Ism</span><input name="name" required></label>
-      <label class="field"><span>Login</span><input name="login" required></label>
-      <label class="field"><span>Parol (kamida 8 belgi)</span><input name="password" minlength="8" required></label>
-      <label class="field" style="align-self:end"><span><input type="checkbox" name="is_admin"> Admin huquqi</span></label>
-      <div><button class="btn">Qo'shish</button><div class="msg"></div></div>
-    </form>
-  </section>
-
-  <div class="composer" id="composer">
-    <form id="f-ask">
-      <textarea id="q" rows="1" placeholder="Masalan: JK 169 yoki holatni yozing…" aria-label="Savol"></textarea>
-      <button class="btn" id="b-send">Yuborish</button>
-    </form>
-    <div class="hint">Holatni yozganda ism-familiya va ish raqamlarini kiritmang. Javob ma'lumot uchun — normani lex.uz'dagi asl matndan tekshiring.</div>
+    <div class="composer" id="composer">
+      <form id="f-ask">
+        <textarea id="q" rows="1" placeholder="Masalan: JK 169 yoki holatni yozing…" aria-label="Savol"></textarea>
+        <button class="btn" id="b-send"><svg class="i"><use href="#send"/></svg>Yuborish</button>
+      </form>
+      <div class="hint">Holatni yozganda ism-familiya va ish raqamlarini kiritmang. Javob ma'lumot uchun — normani lex.uz'dagi asl matndan tekshiring.</div>
+    </div>
   </div>
 </div>
 
 <script>
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const icon = (id) => `<svg class="i"><use href="#${id}"/></svg>`;
+
+// ---------- mavzu ----------
+function setTheme(t) { document.documentElement.dataset.theme = t; try { localStorage.setItem("theme", t); } catch {} }
+try { const t = localStorage.getItem("theme"); if (t) setTheme(t); else if (matchMedia("(prefers-color-scheme: dark)").matches) setTheme("dark"); } catch {}
+$("#b-theme").onclick = () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
 
 async function api(path, data) {
   const r = await fetch("/api/" + path, data === undefined ? {} :
@@ -194,79 +319,95 @@ async function api(path, data) {
   if (!r.ok) throw Object.assign(new Error(j.error || "Xatolik"), { status: r.status });
   return j;
 }
-function show(id) {
-  for (const v of ["v-setup", "v-login", "v-app"]) $("#" + v).classList.toggle("hide", v !== id);
-}
-function formData(f) { return Object.fromEntries(new FormData(f)); }
+function show(id) { for (const v of ["v-setup", "v-login", "v-app"]) $("#" + v).classList.toggle("hide", v !== id); }
+const formData = (f) => Object.fromEntries(new FormData(f));
+
+const MONTHS = ["YANVAR", "FEVRAL", "MART", "APREL", "MAY", "IYUN", "IYUL", "AVGUST", "SENTABR", "OKTABR", "NOYABR", "DEKABR"];
+const DAYS = ["YAKSHANBA", "DUSHANBA", "SESHANBA", "CHORSHANBA", "PAYSHANBA", "JUMA", "SHANBA"];
 
 // ---------- boshlash ----------
+async function refreshMe() {
+  const me = await api("me");
+  const b = me.base || {};
+  $("#u-name").textContent = me.name; $("#hello-name").textContent = me.name;
+  $("#u-av").textContent = (me.name || "?").trim()[0].toUpperCase();
+  $("#u-role").textContent = me.is_admin ? "ADMIN" : "FOYDALANUVCHI";
+  $("#n-admin").classList.toggle("hide", !me.is_admin);
+  $("#base-info").textContent = `${b.codes} kodeks va ${b.plenums} Plenum qarori · lex.uz bilan yangilangan: ${b.built || "—"}`;
+  $("#notice").innerHTML = `Baza: <b>${b.codes} ta kodeks</b> va <b>${b.plenums} ta Plenum qarori</b>, jami ${Number(b.chunks).toLocaleString("uz")} modda va band. Oxirgi yangilanish: <b>${esc(b.built || "—")}</b>.`;
+  $("#s-codes").textContent = b.codes; $("#s-plen").textContent = b.plenums;
+  $("#s-today").textContent = `${me.today_ai}/${me.daily_limit}`;
+  return me;
+}
 async function boot() {
-  try {
-    const me = await api("me");
-    show("v-app");
-    const b = me.base || {};
-    $("#base-info").textContent = `${b.codes} kodeks, ${b.plenums} Plenum qarori · baza: ${b.built || "—"}`;
-    $("#b-admin").classList.toggle("hide", !me.is_admin);
-    $("#q").focus();
-  } catch (e) {
-    const s = await api("setup").catch(() => ({}));
-    show(s.needed ? "v-setup" : "v-login");
-  }
+  const d = new Date(); $("#today").textContent = `${DAYS[d.getDay()]} · ${d.getDate()} ${MONTHS[d.getMonth()]} · ${d.getFullYear()}`;
+  try { await refreshMe(); show("v-app"); $("#q").focus(); }
+  catch (e) { const s = await api("setup").catch(() => ({})); show(s.needed ? "v-setup" : "v-login"); }
 }
 
-$("#f-setup").onsubmit = async (e) => {
-  e.preventDefault(); const f = e.target;
-  try { await api("setup", formData(f)); show("v-login"); }
-  catch (x) { $(".msg", f).textContent = x.message; }
-};
-$("#f-login").onsubmit = async (e) => {
-  e.preventDefault(); const f = e.target;
-  try { await api("login", formData(f)); boot(); }
-  catch (x) { $(".msg", f).textContent = x.message; }
-};
-$("#b-logout").onclick = async () => { await api("logout", {}); location.reload(); };
-$("#b-new").onclick = () => { $("#turns").innerHTML = ""; $("#empty").classList.remove("hide"); toAdmin(false); $("#q").focus(); };
+$("#f-setup").onsubmit = async (e) => { e.preventDefault(); const f = e.target;
+  try { await api("setup", formData(f)); show("v-login"); } catch (x) { $(".msg", f).textContent = x.message; } };
+$("#f-login").onsubmit = async (e) => { e.preventDefault(); const f = e.target;
+  try { await api("login", formData(f)); boot(); } catch (x) { $(".msg", f).textContent = x.message; } };
+$("#n-logout").onclick = async () => { await api("logout", {}); location.reload(); };
+
+// ---------- navigatsiya ----------
+function page(name) {
+  $("#chat").classList.toggle("hide", name !== "chat");
+  $("#composer").classList.toggle("hide", name !== "chat");
+  $("#admin").classList.toggle("hide", name !== "admin");
+  $("#n-chat").classList.toggle("on", name === "chat");
+  $("#n-admin").classList.toggle("on", name === "admin");
+  if (name === "admin") loadUsers();
+  closeMenu();
+}
+$("#n-chat").onclick = () => page("chat");
+$("#n-admin").onclick = () => page("admin");
+$("#n-new").onclick = () => { $("#turns").innerHTML = ""; $("#history").innerHTML = '<div class="none">Hali savol berilmagan</div>'; $("#welcome").classList.remove("hide"); page("chat"); $("#q").focus(); };
+const closeMenu = () => { $("#side").classList.remove("open"); $("#scrim").classList.add("hide"); };
+$("#b-menu").onclick = () => { $("#side").classList.add("open"); $("#scrim").classList.remove("hide"); };
+$("#scrim").onclick = closeMenu;
 
 // ---------- chat ----------
 const q = $("#q");
 q.addEventListener("input", () => { q.style.height = "auto"; q.style.height = q.scrollHeight + "px"; });
 q.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#f-ask").requestSubmit(); } });
-document.querySelectorAll(".examples button").forEach((b) => b.onclick = () => { q.value = b.textContent; $("#f-ask").requestSubmit(); });
+document.querySelectorAll(".examples button").forEach((b) => b.onclick = () => { q.value = b.textContent.trim(); $("#f-ask").requestSubmit(); });
 
 let turnNo = 0;
 $("#f-ask").onsubmit = async (e) => {
   e.preventDefault();
   const text = q.value.trim(); if (!text) return;
   q.value = ""; q.style.height = "auto";
-  toAdmin(false);
-  $("#empty").classList.add("hide");
-  const t = document.createElement("article");
-  t.className = "turn"; const id = ++turnNo;
-  t.innerHTML = `<p class="q">${esc(text)}</p><div class="loading">Qidirilmoqda…</div>`;
+  $("#welcome").classList.add("hide");
+  const id = ++turnNo;
+  const t = document.createElement("article"); t.className = "turn"; t.id = "t" + id;
+  t.innerHTML = `<div class="q"><div>${esc(text)}</div></div><div class="answer"><div class="loading"><i></i><i></i><i></i> Qidirilmoqda…</div></div>`;
   $("#turns").append(t); t.scrollIntoView({ block: "start", behavior: "smooth" });
+  const h = $("#history"); if ($(".none", h)) h.innerHTML = "";
+  const hb = document.createElement("button"); hb.textContent = text; hb.title = text;
+  hb.onclick = () => { page("chat"); t.scrollIntoView({ block: "start", behavior: "smooth" }); };
+  h.prepend(hb);
   $("#b-send").disabled = true;
   try {
     const r = await api("ask", { q: text });
-    t.innerHTML = `<p class="q">${esc(text)}</p>` + renderResult(r, id);
+    t.innerHTML = `<div class="q"><div>${esc(text)}</div></div>` + renderResult(r, id);
+    if (r.mode !== "ref") refreshMe().catch(() => {});
   } catch (x) {
     if (x.status === 401) return boot();
-    t.innerHTML = `<p class="q">${esc(text)}</p><div class="warn">${esc(x.message)}</div>`;
+    t.innerHTML = `<div class="q"><div>${esc(text)}</div></div><div class="warn">${esc(x.message)}</div>`;
   } finally { $("#b-send").disabled = false; q.focus(); }
 };
 
-// Oddiy markdown: **qalin**, ro'yxatlar, xatboshilar, [n] havolalar
 function md(text, id) {
   const lines = esc(text).split("\n"); let html = "", list = null;
   const inline = (s) => s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(.+?)\*/g, "<em>$1</em>")
     .replace(/\[(\d+(?:\s*,\s*\d+)*)\]/g, (m, g) => g.split(/\s*,\s*/).map((n) => `<a class="cite" href="#s${id}-${n}" data-t="${id}-${n}">${n}</a>`).join(""));
   for (const raw of lines) {
-    const l = raw.trim();
-    const m = l.match(/^([-*•]|\d+[.)])\s+(.*)/);
-    if (m) {
-      const tag = /\d/.test(m[1]) ? "ol" : "ul";
+    const l = raw.trim(); const m = l.match(/^([-*•]|\d+[.)])\s+(.*)/);
+    if (m) { const tag = /\d/.test(m[1]) ? "ol" : "ul";
       if (list !== tag) { if (list) html += `</${list}>`; html += `<${tag}>`; list = tag; }
-      html += `<li>${inline(m[2])}</li>`; continue;
-    }
+      html += `<li>${inline(m[2])}</li>`; continue; }
     if (list) { html += `</${list}>`; list = null; }
     if (l) html += `<p>${inline(l.replace(/^#+\s*/, ""))}</p>`;
   }
@@ -276,73 +417,64 @@ function md(text, id) {
 
 function srcHtml(s, id, n) {
   const isPl = s.kind === "plenum";
-  const num = isPl ? `${esc(s.number === "0" ? "—" : s.number)}<small>банд</small>` : `${esc(s.number)}<small>модда</small>`;
+  const num = `<b>${esc(isPl && s.number === "0" ? "—" : s.number)}</b><small>${isPl ? "банд" : "модда"}</small>`;
   const title = isPl ? esc(s.doc_title) : esc(s.heading.replace(/^[\d⁰¹²³⁴⁵⁶⁷⁸⁹]+\s*-?\s*модда\.?\s*/, "") || s.heading);
-  const doc = isPl ? `Олий суд Пленуми қарори, ${esc(s.requisites.replace(/^.*қарори,\s*/i, ""))}` : esc(s.doc_title.replace("Ўзбекистон Республикасининг ", ""));
+  const doc = isPl ? `Олий суд Пленуми қарори, ${esc((s.requisites || "").replace(/^.*қарори,\s*/i, ""))}`
+    : esc(s.doc_title.replace("Ўзбекистон Республикасининг ", "")) + (s.path ? " — " + esc(s.path.split(" > ").pop()) : "");
   const long = s.text.length > 600;
   return `<div class="src ${isPl ? "plenum" : ""}" id="s${id}-${n ?? s.id}">
     <div class="num">${num}</div>
     <div>
-      <h3>${n ? `<span class="tag">[${n}]</span> ` : ""}${title}</h3>
-      <p class="doc">${doc}${s.path && !isPl ? " — " + esc(s.path.split(" > ").pop()) : ""}</p>
+      <h4>${n ? `<span class="n">[${n}]</span>` : ""}${title}</h4>
+      <p class="doc">${doc}</p>
       <div class="body ${long ? "clamp" : ""}">${esc(s.text)}</div>
       <div class="acts">
-        ${long ? `<button data-act="more">To'liq matn</button>` : ""}
-        ${s.changes ? `<button data-act="chg">O'zgartirishlar tarixi</button>` : ""}
-        <button data-act="copy">Nusxa olish</button>
-        <a href="${esc(s.url)}" target="_blank" rel="noopener">lex.uz'da ochish</a>
+        ${long ? `<button data-act="more">${icon("expand")}<span>To'liq matn</span></button>` : ""}
+        ${s.changes ? `<button data-act="chg">${icon("clock")}O'zgartirishlar</button>` : ""}
+        <button data-act="copy">${icon("copy")}<span>Nusxa olish</span></button>
+        <a href="${esc(s.url)}" target="_blank" rel="noopener">${icon("ext")}lex.uz</a>
       </div>
       ${s.changes ? `<div class="changes hide">${esc(s.changes)}</div>` : ""}
     </div></div>`;
 }
 
 function renderResult(r, id) {
-  let h = "";
+  const head = `<div class="who"><span class="logo"><svg class="i"><use href="#scale"/></svg></span>${r.mode === "ref" ? "AMALDAGI TAHRIR" : r.mode === "ai" ? "AI JAVOBI" : "TOPILGAN NORMALAR"}</div>`;
   if (r.mode === "ref") {
-    if (r.answer) h += `<div class="answer"><p>${esc(r.answer)}</p></div>`;
-    h += `<div class="sources">${r.sources.map((s) => srcHtml(s, id)).join("")}</div>`;
-    return h;
+    if (!r.sources.length) return `<div class="answer">${head}<p>${esc(r.answer)}</p></div>`;
+    return `<div class="sources">${r.sources.map((s) => srcHtml(s, id)).join("")}</div>`;
   }
-  h += `<div class="answer">${md(r.answer || "", id)}</div>`;
+  let h = `<div class="answer">${head}${md(r.answer || "", id)}</div>`;
   if (r.warning) h += `<div class="warn">${esc(r.warning)}</div>`;
   const used = r.sources.filter((s) => s.used), rest = r.sources.filter((s) => !s.used);
   if (used.length) h += `<div class="sources">${used.map((s) => srcHtml(s, id, s.n)).join("")}</div>`;
-  if (rest.length) h += `<details class="others"><summary>Yana ${rest.length} ta topilgan, lekin javobda ishlatilmagan norma</summary>${rest.map((s) => srcHtml(s, id, s.n)).join("")}</details>`;
+  if (rest.length) h += `<details class="others"><summary>Yana ${rest.length} ta topilgan, javobda ishlatilmagan norma</summary><div class="sources">${rest.map((s) => srcHtml(s, id, s.n)).join("")}</div></details>`;
   return h;
 }
 
 document.addEventListener("click", (e) => {
   const c = e.target.closest(".cite");
-  if (c) {
-    const el = document.getElementById("s" + c.dataset.t);
+  if (c) { const el = document.getElementById("s" + c.dataset.t);
     if (el) { e.preventDefault(); const d = el.closest("details"); if (d) d.open = true;
       el.scrollIntoView({ block: "center", behavior: "smooth" }); el.classList.add("flash"); setTimeout(() => el.classList.remove("flash"), 1600); }
-    return;
-  }
+    return; }
   const b = e.target.closest(".src [data-act]"); if (!b) return;
   const src = b.closest(".src");
-  if (b.dataset.act === "more") { const body = $(".body", src); body.classList.toggle("clamp"); b.textContent = body.classList.contains("clamp") ? "To'liq matn" : "Qisqartirish"; }
+  if (b.dataset.act === "more") { const body = $(".body", src); body.classList.toggle("clamp"); $("span", b).textContent = body.classList.contains("clamp") ? "To'liq matn" : "Qisqartirish"; }
   if (b.dataset.act === "chg") $(".changes", src).classList.toggle("hide");
   if (b.dataset.act === "copy") {
-    const txt = `${$("h3", src).innerText.replace(/^\[\d+\]\s*/, "")}\n${$(".body", src).innerText}\n(${$(".doc", src).innerText}; ${$("a", src).href})`;
-    navigator.clipboard.writeText(txt).then(() => { b.textContent = "Nusxa olindi"; setTimeout(() => b.textContent = "Nusxa olish", 1500); });
+    const txt = `${$("h4", src).innerText.replace(/^\[\d+\]\s*/, "")}\n${$(".body", src).innerText}\n(${$(".doc", src).innerText}; ${$("a", src).href})`;
+    navigator.clipboard.writeText(txt).then(() => { $("span", b).textContent = "Nusxa olindi"; setTimeout(() => $("span", b).textContent = "Nusxa olish", 1500); });
   }
 });
 
 // ---------- admin ----------
-function toAdmin(on) {
-  $("#v-admin").classList.toggle("hide", !on);
-  $("#chat").classList.toggle("hide", on);
-  $("#composer").classList.toggle("hide", on);
-  if (on) loadUsers();
-}
-$("#b-admin").onclick = () => toAdmin($("#v-admin").classList.contains("hide"));
 async function loadUsers() {
   const list = await api("admin/users");
-  $("#users").innerHTML = list.map((u) => `<tr><td>${esc(u.name)}${u.is_admin ? " (admin)" : ""}</td><td>${esc(u.login)}</td><td>${u.questions}</td>
-    <td>${u.active ? "faol" : "o'chirilgan"}</td>
-    <td><button class="link" data-u="${u.id}" data-on="${u.active ? 0 : 1}">${u.active ? "O'chirish" : "Yoqish"}</button>
-        <button class="link" data-pw="${u.id}">Parolni almashtirish</button></td></tr>`).join("");
+  $("#users").innerHTML = list.map((u) => `<tr><td><b>${esc(u.name)}</b>${u.is_admin ? ' <span class="badge on">admin</span>' : ""}</td><td>${esc(u.login)}</td><td>${u.questions}</td>
+    <td><span class="badge ${u.active ? "on" : "off"}">${u.active ? "faol" : "o'chirilgan"}</span></td>
+    <td style="white-space:nowrap"><button class="mini" data-u="${u.id}" data-on="${u.active ? 0 : 1}">${u.active ? "O'chirish" : "Yoqish"}</button>
+        <button class="mini" data-pw="${u.id}">Parol</button></td></tr>`).join("");
 }
 $("#users").onclick = async (e) => {
   const b = e.target.closest("button"); if (!b) return;
