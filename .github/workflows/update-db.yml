@@ -1,0 +1,73 @@
+name: Bazani lex.uz'dan yangilash
+
+# Har dushanba tunda (Toshkent 03:00) va qo'lda ishga tushirilganda:
+# kodekslar va Plenum qarorlarini lex.uz'dan qayta yuklab, D1 bazasiga yozadi.
+# Sayt birinchi marta joylangandan keyin ham avtomatik ishlaydi (baza bo'sh bo'lsa).
+on:
+  schedule:
+    - cron: "0 22 * * 0"
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Saytni joylash"]
+    types: [completed]
+
+concurrency: cloudflare
+
+jobs:
+  update:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+        working-directory: worker
+      - run: pip install requests beautifulsoup4
+
+      - name: D1 bazasini tayyorlash
+        working-directory: worker
+        run: bash scripts/ensure-d1.sh
+
+      - name: Baza bo'shmi? (joylashdan keyin faqat birinchi marta to'ldiriladi)
+        id: check
+        working-directory: worker
+        run: |
+          if [ "${{ github.event_name }}" != "workflow_run" ]; then echo "run=yes" >> $GITHUB_OUTPUT; exit 0; fi
+          if npx wrangler d1 execute qonun-baza --remote --json --command "SELECT COUNT(*) AS n FROM docs" >/dev/null 2>&1; then
+            echo "Baza to'la — o'tkazib yuborildi"; echo "run=no" >> $GITHUB_OUTPUT
+          else
+            echo "run=yes" >> $GITHUB_OUTPUT
+          fi
+
+      - name: lex.uz'dan yuklab olish
+        if: steps.check.outputs.run == 'yes'
+        run: python build.py --refresh
+
+      - name: Tekshirish (kamida 20 kodeks va 100 Plenum qarori)
+        if: steps.check.outputs.run == 'yes'
+        run: |
+          python - <<'EOF'
+          import json, sys
+          d = json.load(open("data/docs.json"))["docs"]
+          k = sum(x["kind"] == "kodeks" and not x.get("error") for x in d)
+          p = sum(x["kind"] == "plenum" and not x.get("error") for x in d)
+          print(f"Kodekslar: {k}, Plenum: {p}")
+          sys.exit(0 if k >= 20 and p >= 100 else "Hujjatlar kam — eski baza saqlab qolindi")
+          EOF
+
+      - name: D1'ga yozish
+        if: steps.check.outputs.run == 'yes'
+        run: |
+          python export_d1.py
+          cd worker && npx wrangler d1 execute qonun-baza --remote --yes --file=../d1/data.sql

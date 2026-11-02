@@ -1,0 +1,29 @@
+name = "qonun-ai"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+# Sayt manzili (maksudoff.uz Cloudflare'da bo'lgani uchun avtomatik ulanadi)
+routes = [{ pattern = "qonun.maksudoff.uz", custom_domain = true }]
+
+# Chat sahifasi (public/ papkasi)
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]
+
+# Qonunchilik bazasi
+[[d1_databases]]
+binding = "DB"
+database_name = "qonun-baza"
+database_id = "BU_YERGA_D1_ID_QOYILADI"  # GitHub Actions avtomatik almashtiradi
+
+[vars]
+# Model nomlari — kerak bo'lsa shu yerda almashtiriladi
+GEMINI_MODEL = "gemini-3.8-flash"        # javob yozuvchi model
+GEMINI_FAST_MODEL = "gemini-3.5-flash-lite" # savolni tahlil qiluvchi tez model
+DAILY_LIMIT = "150"                        # bir foydalanuvchi uchun kunlik AI so'rovlar
+
+# Maxfiy qiymatlar (wrangler secret put bilan qo'yiladi, bu faylga YOZILMAYDI):
+#   GEMINI_API_KEY      — Google AI Studio kaliti
+#   ADMIN_SETUP_CODE    — birinchi admin akkauntini yaratish uchun bir martalik kod
