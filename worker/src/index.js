@@ -149,6 +149,7 @@ async function ask(env, user, q) {
   // 3) Savolni tahlil qilish (tez model). Xato bo'lsa — oddiy so'z qidiruviga o'tamiz.
   let plan = { refs: [], code_keywords: [q], plenum_keywords: [q] };
   let aiAvailable = true;
+  const aiErrors = [];
   try {
     const a = await analyze(env, q);
     plan = {
@@ -157,6 +158,7 @@ async function ask(env, user, q) {
       plenum_keywords: [...(a.plenum_keywords || []), q],
     };
   } catch (e) {
+    aiErrors.push(`tahlil (${env.GEMINI_FAST_MODEL}): ${e.status || ""} ${String(e.message).slice(0, 300)}`);
     if (e instanceof GeminiError && e.status === 429) aiAvailable = false;
   }
 
@@ -199,6 +201,7 @@ async function ask(env, user, q) {
       });
     } catch (e) {
       if (!(e instanceof GeminiError)) throw e;
+      aiErrors.push(`javob (${env.GEMINI_MODEL}): ${e.status || ""} ${String(e.message).slice(0, 300)}`);
       aiAvailable = false;
     }
   }
@@ -206,6 +209,7 @@ async function ask(env, user, q) {
   return json({
     mode: "search",
     answer: "AI hozir javob bera olmadi (limit yoki ulanish muammosi). Quyida bazadan topilgan eng mos normalar.",
+    ai_error: user.is_admin && aiErrors.length ? aiErrors.join("\n") : undefined,
     sources: top.map((s, i) => ({ ...pub(s), n: i + 1, used: true })),
   });
 }

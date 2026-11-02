@@ -455,6 +455,7 @@ function renderResult(r, id) {
   }
   let h = `<div class="answer">${head}${md(r.answer || "", id)}</div>`;
   if (r.warning) h += `<div class="warn">${esc(r.warning)}</div>`;
+  if (r.ai_error) h += `<div class="warn" style="white-space:pre-wrap;font-family:monospace;font-size:.8rem">Admin uchun — Gemini xatosi:\n${esc(r.ai_error)}</div>`;
   const used = r.sources.filter((s) => s.used), rest = r.sources.filter((s) => !s.used);
   if (used.length) h += `<div class="sources">${used.map((s) => srcHtml(s, id, s.n)).join("")}</div>`;
   if (rest.length) h += `<details class="others"><summary>Yana ${rest.length} ta topilgan, javobda ishlatilmagan norma</summary><div class="sources">${rest.map((s) => srcHtml(s, id, s.n)).join("")}</div></details>`;
