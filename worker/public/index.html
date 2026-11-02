@@ -107,6 +107,8 @@ aside .brand{padding:4px 6px 18px;border-bottom:1px solid var(--line);margin-bot
 .answer .who{display:flex;align-items:center;gap:8px;font-size:.78rem;font-weight:700;color:var(--ink-3);letter-spacing:.04em;margin-bottom:10px}
 .answer .who .logo{width:24px;height:24px;border-radius:7px}.answer .who .logo svg{width:14px;height:14px}
 .answer p{margin:0 0 .7em}.answer p:last-child{margin:0}
+.answer h5{font-size:.8rem;font-weight:700;color:var(--blue);letter-spacing:.03em;margin:18px 0 6px;padding-top:14px;border-top:1px solid var(--line)}
+.answer .who + h5{margin-top:4px;padding-top:0;border-top:0}
 .answer ul,.answer ol{margin:0 0 .7em;padding-left:1.3em}
 .cite{display:inline-grid;place-items:center;min-width:20px;height:20px;font-size:.72rem;font-weight:700;color:var(--blue);background:var(--blue-bg);border-radius:6px;padding:0 5px;margin:0 2px;cursor:pointer;vertical-align:.1em;text-decoration:none}
 .warn{background:var(--amber-bg);color:var(--amber);border-radius:12px;padding:11px 16px;margin-top:12px;font-size:.9rem;font-weight:500}
@@ -458,7 +460,9 @@ function md(text, id) {
       if (list !== tag) { if (list) html += `</${list}>`; html += `<${tag}>`; list = tag; }
       html += `<li>${inline(m[2])}</li>`; continue; }
     if (list) { html += `</${list}>`; list = null; }
-    if (l) html += `<p>${inline(l.replace(/^#+\s*/, ""))}</p>`;
+    const sec = l.match(/^(?:#+\s*(.+?)|\*\*([^*]+?)\*\*:?)$/);
+    if (sec) { html += `<h5>${inline(sec[1] || sec[2])}</h5>`; continue; }
+    if (l) html += `<p>${inline(l)}</p>`;
   }
   if (list) html += `</${list}>`;
   return html;
