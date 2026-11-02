@@ -333,16 +333,25 @@ async function refreshMe() {
   $("#u-av").textContent = (me.name || "?").trim()[0].toUpperCase();
   $("#u-role").textContent = me.is_admin ? "ADMIN" : "FOYDALANUVCHI";
   $("#n-admin").classList.toggle("hide", !me.is_admin);
-  $("#base-info").textContent = `${b.codes} kodeks va ${b.plenums} Plenum qarori · lex.uz bilan yangilangan: ${b.built || "—"}`;
-  $("#notice").innerHTML = `Baza: <b>${b.codes} ta kodeks</b> va <b>${b.plenums} ta Plenum qarori</b>, jami ${Number(b.chunks).toLocaleString("uz")} modda va band. Oxirgi yangilanish: <b>${esc(b.built || "—")}</b>.`;
-  $("#s-codes").textContent = b.codes; $("#s-plen").textContent = b.plenums;
+  if (me.base) {
+    $("#base-info").textContent = `${b.codes} kodeks va ${b.plenums} Plenum qarori · lex.uz bilan yangilangan: ${b.built || "—"}`;
+    $("#notice").innerHTML = `Baza: <b>${b.codes} ta kodeks</b> va <b>${b.plenums} ta Plenum qarori</b>, jami ${Number(b.chunks).toLocaleString("uz")} modda va band. Oxirgi yangilanish: <b>${esc(b.built || "—")}</b>.`;
+    $("#s-codes").textContent = b.codes; $("#s-plen").textContent = b.plenums;
+  } else {
+    $("#base-info").textContent = "Baza lex.uz'dan yuklanmoqda…";
+    $("#notice").innerHTML = "Baza hozir lex.uz'dan yuklanmoqda yoki yangilanmoqda. Bir necha daqiqadan keyin sahifani yangilang.";
+  }
   $("#s-today").textContent = `${me.today_ai}/${me.daily_limit}`;
   return me;
 }
 async function boot() {
   const d = new Date(); $("#today").textContent = `${DAYS[d.getDay()]} · ${d.getDate()} ${MONTHS[d.getMonth()]} · ${d.getFullYear()}`;
   try { await refreshMe(); show("v-app"); $("#q").focus(); }
-  catch (e) { const s = await api("setup").catch(() => ({})); show(s.needed ? "v-setup" : "v-login"); }
+  catch (e) {
+    const s = await api("setup").catch(() => ({}));
+    show(s.needed ? "v-setup" : "v-login");
+    if (e.status && e.status !== 401) $("#f-login .msg").textContent = e.message;
+  }
 }
 
 $("#f-setup").onsubmit = async (e) => { e.preventDefault(); const f = e.target;

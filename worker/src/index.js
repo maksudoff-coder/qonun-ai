@@ -56,15 +56,25 @@ async function route(request, env, p) {
     return json({ ok: true }, 200, { "set-cookie": clearCookie() });
   }
   if (p === "/api/me") {
-    const info = await db.prepare(
-      `SELECT (SELECT COUNT(*) FROM docs WHERE kind='kodeks') AS codes, (SELECT COUNT(*) FROM docs WHERE kind='plenum') AS plenums,
-       (SELECT COUNT(*) FROM chunks) AS chunks, (SELECT value FROM meta WHERE key='built') AS built`).first();
+    let info = null; // baza hali yuklanmagan yoki yangilanayotgan bo'lishi mumkin
+    try {
+      info = await db.prepare(
+        `SELECT (SELECT COUNT(*) FROM docs WHERE kind='kodeks') AS codes, (SELECT COUNT(*) FROM docs WHERE kind='plenum') AS plenums,
+         (SELECT COUNT(*) FROM chunks) AS chunks, (SELECT value FROM meta WHERE key='built') AS built`).first();
+    } catch { info = null; }
     const today = await db.prepare(
       "SELECT COUNT(*) AS n FROM log WHERE user_id=? AND mode='ai' AND created >= date('now')").bind(user.id).first("n");
     return json({ login: user.login, name: user.name, is_admin: !!user.is_admin, base: info,
       today_ai: today, daily_limit: +(env.DAILY_LIMIT || 150) });
   }
-  if (p === "/api/ask" && method === "POST") return ask(env, user, (body.q || "").trim());
+  if (p === "/api/ask" && method === "POST") {
+    try {
+      return await ask(env, user, (body.q || "").trim());
+    } catch (e) {
+      if (/no such table/.test(String(e.message))) return err("Baza hozir lex.uz'dan yangilanmoqda. Bir necha daqiqadan keyin qayta urinib ko'ring.", 503);
+      throw e;
+    }
+  }
 
   // --- admin ---
   if (p.startsWith("/api/admin/")) {
