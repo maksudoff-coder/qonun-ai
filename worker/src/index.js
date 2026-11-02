@@ -150,7 +150,7 @@ async function ask(env, user, q, ctx) {
   if (used >= +(env.DAILY_LIMIT || 150)) return err("Bugungi AI so'rovlar limiti tugadi. Ertaga davom eting yoki aniq modda bo'yicha qidiring (masalan: JK 104).", 429);
 
   // 3) Savolni tahlil qilish (tez model). Xato bo'lsa — oddiy so'z qidiruviga o'tamiz.
-  let plan = { refs: [], code_keywords: [q], plenum_keywords: [q] };
+  let plan = { refs: [], code_keywords: [q], plenum_keywords: [q], intent: null };
   let aiAvailable = true;
   const aiErrors = [];
   try {
@@ -159,12 +159,40 @@ async function ask(env, user, q, ctx) {
       refs: Array.isArray(a.refs) ? a.refs.slice(0, 6) : [],
       code_keywords: [...(a.code_keywords || []), q],
       plenum_keywords: [...(a.plenum_keywords || []), q],
+      intent: a.intent || null,
     };
   } catch (e) {
     aiErrors.push("tahlil: " + (e.all ? e.all.join(" | ") : `${e.status || ""} ${String(e.message).slice(0, 300)}`));
     if (e instanceof GeminiError && e.status === 429) aiAvailable = false;
   }
   mark("tahlil");
+
+  // 3a) "Qaysi Plenum qarori?" — AI javobisiz, faqat qarorlar ro'yxati
+  const cq = toCyr(q);
+  const mentionsPlenum = /пленум/.test(cq);
+  const asksBand = /банд|band|тушунтир|нима де|мазмун/.test(cq);
+  const intent = plan.intent || (mentionsPlenum && !asksBand ? "plenum_list" : "general");
+  if (intent === "plenum_list" && !refs.length) {
+    // "пленум", "қарор", "суд" kabi so'zlar barcha qarorlarda bor — qidiruvni buzmasligi uchun olib tashlanadi
+    const kw = plan.plenum_keywords.map((k) => toCyr(k).replace(/пленум\S*|қарор\S*|олий|суд\S*|топиб|бер\S*|борми|ҳақида|тўғрисида/g, " "));
+    const rows = await textSearch(db, kw, "plenum", 60);
+    const docs = new Map();
+    for (const r of rows) {
+      if (!docs.has(r.doc_id)) {
+        if (docs.size >= 6) continue;
+        docs.set(r.doc_id, { doc_id: r.doc_id, title: r.doc_title, requisites: r.requisites,
+          url: `https://lex.uz/docs/${r.doc_id}`, bands: [] });
+      }
+      const d = docs.get(r.doc_id);
+      if (d.bands.length < 6) d.bands.push(pub(r));
+    }
+    mark("jami");
+    const list = [...docs.values()];
+    for (const d of list) d.bands.sort((a, b) => parseInt(a.number) - parseInt(b.number));
+    await log(db, user, q, "plenum", list.flatMap((d) => d.bands), list.length > 0);
+    return json({ mode: "plenum", docs: list, timings: user.is_admin ? timings : undefined,
+      answer: list.length ? null : "Bu mavzu bo'yicha Plenum qarori topilmadi. Boshqa so'zlar bilan yozib ko'ring." });
+  }
 
   // 4) Manbalarni yig'ish
   const seen = new Set(), sources = [];

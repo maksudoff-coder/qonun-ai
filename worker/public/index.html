@@ -491,7 +491,33 @@ function srcHtml(s, id, n) {
     </div></div>`;
 }
 
+function plenumCard(d, id, i) {
+  const m = (d.requisites || "").match(/(\d{2}\.\d{2}\.(\d{4})).*?([\w\/-]+)-сон/);
+  const num = m ? m[3] : "—", date = m ? m[1] : "", year = m ? m[2] : "";
+  const bands = d.bands || [];
+  return `<div class="src plenum pdoc" data-copy="${esc(`${d.title}\nОлий суд Пленумининг ${date} йилдаги ${num}-сон қарори\n${d.url}`)}">
+    <div class="num"><b>${esc(num)}</b><small>${esc(year)}</small></div>
+    <div>
+      <h4>${esc(d.title)}</h4>
+      <p class="doc">Олий суд Пленуми қарори${date ? `, ${esc(date)} йилдаги ${esc(num)}-сон` : ""}</p>
+      <div class="acts">
+        <a href="${esc(d.url)}" target="_blank" rel="noopener">${icon("ext")}lex.uz'da ochish</a>
+        <button data-act="copydoc">${icon("copy")}<span>Nusxa olish</span></button>
+      </div>
+      ${bands.length ? `<details class="others"><summary>Tegishli bandlar (${bands.length})</summary><div class="sources">${bands.map((b) => srcHtml(b, id, null)).join("")}</div></details>` : ""}
+    </div></div>`;
+}
+
 function renderResult(r, id) {
+  if (r.mode === "plenum") {
+    const head = aiHead("PLENUM QARORLARI", r.docs?.length ? `${r.docs.length} ta topildi` : "");
+    let h = r.docs?.length
+      ? `<div class="answer">${head}<p>Savolingizga tegishli Oliy sud Plenumi qarorlari. Bandlarni ko'rish uchun kartochka ostidagi "Tegishli bandlar" bo'limini oching.</p></div>
+         <div class="sources">${r.docs.map((d, i) => plenumCard(d, id, i)).join("")}</div>`
+      : `<div class="answer">${head}<p>${esc(r.answer)}</p></div>`;
+    if (r.timings) h += `<div class="hint" style="text-align:left;margin-top:8px">Admin: tahlil ${r.timings.tahlil} s · jami ${r.timings.jami} s</div>`;
+    return h;
+  }
   const head = aiHead(r.mode === "ref" ? "AMALDAGI TAHRIR" : r.mode === "ai" ? "AI JAVOBI" : "TOPILGAN NORMALAR", r.model);
   if (r.mode === "ref") {
     if (!r.sources.length) return `<div class="answer">${head}<p>${esc(r.answer)}</p></div>`;
@@ -518,6 +544,10 @@ document.addEventListener("click", (e) => {
   const src = b.closest(".src");
   if (b.dataset.act === "more") { const body = $(".body", src); body.classList.toggle("clamp"); $("span", b).textContent = body.classList.contains("clamp") ? "To'liq matn" : "Qisqartirish"; }
   if (b.dataset.act === "chg") $(".changes", src).classList.toggle("hide");
+  if (b.dataset.act === "copydoc") {
+    navigator.clipboard.writeText(src.dataset.copy).then(() => { $("span", b).textContent = "Nusxa olindi"; setTimeout(() => $("span", b).textContent = "Nusxa olish", 1500); });
+    return;
+  }
   if (b.dataset.act === "copy") {
     const txt = `${$("h4", src).innerText.replace(/^\[\d+\]\s*/, "")}\n${$(".body", src).innerText}\n(${$(".doc", src).innerText}; ${$("a", src).href})`;
     navigator.clipboard.writeText(txt).then(() => { $("span", b).textContent = "Nusxa olindi"; setTimeout(() => $("span", b).textContent = "Nusxa olish", 1500); });
