@@ -69,7 +69,7 @@ async function route(request, env, p, ctx) {
   }
   if (p === "/api/ask" && method === "POST") {
     try {
-      return await ask(env, user, (body.q || "").trim(), ctx);
+      return await ask(env, user, (body.q || "").trim(), ctx, body);
     } catch (e) {
       if (/no such table/.test(String(e.message))) return err("Baza hozir lex.uz'dan yangilanmoqda. Bir necha daqiqadan keyin qayta urinib ko'ring.", 503);
       throw e;
@@ -126,8 +126,12 @@ async function log(db, user, q, mode, sources, ok) {
     .bind(user.id, q.slice(0, 2000), mode, sources.map((s) => s.id).join(","), ok ? 1 : 0).run();
 }
 
-async function ask(env, user, q, ctx) {
+async function ask(env, user, q, ctx, body = {}) {
   const db = env.DB;
+  // Bitta chat ichidagi oldingi savol-javoblar (brauzerdan keladi) va oldingi javob manbalari
+  const history = (Array.isArray(body.history) ? body.history : []).slice(-3)
+    .map((h) => ({ q: String(h?.q || "").slice(0, 1000), a: String(h?.a || "").slice(0, 1500) })).filter((h) => h.q);
+  const prevIds = (Array.isArray(body.prev) ? body.prev : []).map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 8);
   const t0 = Date.now();
   const timings = {};
   const mark = (k) => { timings[k] = +((Date.now() - t0) / 1000).toFixed(1); };
@@ -154,12 +158,14 @@ async function ask(env, user, q, ctx) {
   let aiAvailable = true;
   const aiErrors = [];
   try {
-    const a = await analyze(env, q);
+    const a = await analyze(env, q, history);
+    const sq = String(a.standalone || q).slice(0, 2000); // davomli savol — to'liq ko'rinishda
     plan = {
       refs: Array.isArray(a.refs) ? a.refs.slice(0, 6) : [],
-      code_keywords: [...(a.code_keywords || []), q],
-      plenum_keywords: [...(a.plenum_keywords || []), q],
+      code_keywords: [...(a.code_keywords || []), sq],
+      plenum_keywords: [...(a.plenum_keywords || []), sq],
       intent: a.intent || null,
+      standalone: sq,
     };
   } catch (e) {
     aiErrors.push("tahlil: " + (e.all ? e.all.join(" | ") : `${e.status || ""} ${String(e.message).slice(0, 300)}`));
@@ -168,7 +174,7 @@ async function ask(env, user, q, ctx) {
   mark("tahlil");
 
   // 3a) "Qaysi Plenum qarori?" — AI javobisiz, faqat qarorlar ro'yxati
-  const cq = toCyr(q);
+  const cq = toCyr(plan.standalone || q);
   const mentionsPlenum = /пленум/.test(cq);
   const asksBand = /банд|band|тушунтир|нима де|мазмун/.test(cq);
   const intent = plan.intent || (mentionsPlenum && !asksBand ? "plenum_list" : "general");
@@ -213,6 +219,13 @@ async function ask(env, user, q, ctx) {
       if (r.article) add(await lookupRef(db, { abbr, num: normNum(String(r.article).replace(/[^\d⁰¹²³⁴⁵⁶⁷⁸⁹^-]/g, "")) }), 2);
     } catch (e) { console.error("ref", r, e.message); }
   }
+  if (prevIds.length) {
+    const { results } = await db.prepare(
+      `SELECT c.*, d.title AS doc_title, d.requisites, d.version FROM chunks c JOIN docs d ON d.id=c.doc_id
+       WHERE c.id IN (${prevIds.map(() => "?").join(",")})`).bind(...prevIds).all();
+    results.sort((x, y) => prevIds.indexOf(x.id) - prevIds.indexOf(y.id));
+    add(results, 4);
+  }
   add(await textSearch(db, plan.plenum_keywords, "plenum", 6), 6);
   add(await textSearch(db, plan.code_keywords, "kodeks", 6), 6);
   const top = sources.slice(0, 16);
@@ -254,7 +267,7 @@ async function ask(env, user, q, ctx) {
           if (!text) mark("birinchi_soz");
           text += d;
           await send({ type: "delta", text: d });
-        });
+        }, history);
       } catch (e) {
         if (!(e instanceof GeminiError)) throw e;
         aiErrors.push("javob: " + (e.all ? e.all.join(" | ") : `${e.status || ""} ${String(e.message).slice(0, 300)}`));
@@ -268,6 +281,7 @@ async function ask(env, user, q, ctx) {
       await log(db, user, q, "ai", top, true);
       await send({
         type: "done", mode: "ai", answer: text, warning: checkArticles(text, top), model: res?.model,
+        standalone: user.is_admin && history.length ? plan.standalone : undefined,
         timings: user.is_admin ? timings : undefined,
         ai_error: user.is_admin && aiErrors.length ? aiErrors.join("\n") : undefined,
         sources: top.map((s, i) => ({ ...pub(s), n: i + 1, used: usedIdx.includes(i + 1) })),

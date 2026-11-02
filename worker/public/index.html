@@ -381,7 +381,7 @@ function page(name) {
 }
 $("#n-chat").onclick = () => page("chat");
 $("#n-admin").onclick = () => page("admin");
-$("#n-new").onclick = () => { $("#turns").innerHTML = ""; $("#history").innerHTML = '<div class="none">Hali savol berilmagan</div>'; $("#welcome").classList.remove("hide"); page("chat"); $("#q").focus(); };
+$("#n-new").onclick = () => { chatHistory = []; prevSources = []; $("#turns").innerHTML = ""; $("#history").innerHTML = '<div class="none">Hali savol berilmagan</div>'; $("#welcome").classList.remove("hide"); page("chat"); $("#q").focus(); };
 const closeMenu = () => { $("#side").classList.remove("open"); $("#scrim").classList.add("hide"); };
 $("#b-menu").onclick = () => { $("#side").classList.add("open"); $("#scrim").classList.remove("hide"); };
 $("#scrim").onclick = closeMenu;
@@ -415,6 +415,7 @@ $("#f-ask").onsubmit = async (e) => {
         `<div class="hint" style="text-align:left;margin-top:8px">${found} ta norma topildi — manbalar javob tugagach chiqadi</div>`;
     });
     t.innerHTML = qHtml + renderResult(r, id);
+    remember(text, r);
     if (r.mode !== "ref") refreshMe().catch(() => {});
   } catch (x) {
     if (x.status === 401) return boot();
@@ -423,8 +424,20 @@ $("#f-ask").onsubmit = async (e) => {
 };
 
 /** /api/ask: oddiy JSON (aniq havola, xato) yoki NDJSON oqim (AI javobi) */
+// Bitta chat ichidagi suhbat xotirasi: oxirgi savol-javoblar va oxirgi javob manbalari
+let chatHistory = [], prevSources = [];
+function remember(q, r) {
+  let a = "", ids = [];
+  if (r.mode === "ref") { a = (r.sources || []).map((s) => `${s.doc_title} ${s.heading}`).join("; ") || r.answer || ""; ids = (r.sources || []).map((s) => s.id); }
+  else if (r.mode === "plenum") { a = (r.docs || []).map((d) => `Пленум: ${d.title} (${d.requisites})`).join("; ") || r.answer || ""; }
+  else { a = r.answer || ""; ids = (r.sources || []).filter((s) => s.used).map((s) => s.id); }
+  chatHistory.push({ q, a: a.slice(0, 1500) }); chatHistory = chatHistory.slice(-3);
+  if (ids.length) prevSources = ids.slice(0, 8);
+}
+
 async function askStream(text, onPartial) {
-  const r = await fetch("/api/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ q: text }) });
+  const r = await fetch("/api/ask", { method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ q: text, history: chatHistory, prev: prevSources }) });
   const ct = r.headers.get("content-type") || "";
   if (!ct.includes("ndjson")) {
     const j = await r.json().catch(() => ({ error: "Server javob bermadi" }));
@@ -531,6 +544,7 @@ function renderResult(r, id) {
   }
   let h = `<div class="answer">${head}${md(r.answer || "", id)}</div>`;
   if (r.warning) h += `<div class="warn">${esc(r.warning)}</div>`;
+  if (r.standalone) h += `<div class="hint" style="text-align:left;margin-top:8px">Admin: savol shunday tushunildi — ${esc(r.standalone)}</div>`;
   if (r.timings) { const tm = r.timings;
     h += `<div class="hint" style="text-align:left;margin-top:8px">Admin: tahlil ${tm.tahlil ?? "—"} s · qidiruv ${tm.qidiruv ?? "—"} s · birinchi so'z ${tm.birinchi_soz ?? "—"} s · jami ${tm.jami ?? "—"} s</div>`; }
   if (r.ai_error) h += `<div class="warn" style="white-space:pre-wrap;font-family:monospace;font-size:.8rem">Admin uchun — Gemini xatosi:\n${esc(r.ai_error)}</div>`;

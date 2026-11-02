@@ -60,6 +60,7 @@ const ANALYZE_SYSTEM = `Сен Ўзбекистон қонунчилиги бў�
 Вазифанг — уни қонунчилик базасидан қидириш учун тайёрлаш. Фақат JSON қайтар:
 {
  "intent": "general",
+ "standalone": "...",
  "refs": [{"code": "ЖК", "article": "169"}],
  "code_keywords": ["..."],
  "plenum_keywords": ["..."]
@@ -72,9 +73,19 @@ const ANALYZE_SYSTEM = `Сен Ўзбекистон қонунчилиги бў�
 - refs: савол аниқ тегишли бўлган кодекс моддалари (сен ишонч ҳосил қилган бўлсанг). Қисқартмалар: ЖК, ЖПК, ЖИК, МЖтК, ФК, ФПК, ИПК, МСИЮтК, МК (Меҳнат), ОК (Оила), СК (Солиқ), УЖК, ЕК, БК (Божхона), Конституция. Ишонмасанг — бўш қолдир. Кўпи билан 6 та.
 - code_keywords: қонун матнида учрайдиган расмий юридик атамалар, ўзбек КИРИЛЛ ёзувида (масалан "ўғирлик" эмас "ўғрилик", "суд қарори" эмас "ҳукм" ва ҳ.к.). 3–8 та.
 - plenum_keywords: Олий суд Пленуми қарорларида учрайдиган атамалар, кирилл ёзувида. 3–8 та.
+- standalone: агар ОЛДИНГИ СУҲБАТ берилган бўлса ва янги савол унинг давоми бўлса («бу ҳолатда-чи?», «унинг 2-қисми», «такроран бўлса-чи?») — янги саволни олдинги мавзуни ҳисобга олган ҳолда ўзи тушунарли бўладиган тўлиқ савол қилиб қайта ёз (кирилл ёзувида). Давоми бўлмаса — саволнинг ўзини ёз. refs, калит сўзлар ва intent ана шу тўлиқ саволга асосланади.
 - Ҳеч қачон изоҳ ёзма, фақат JSON.`;
 
-export function analyze(env, question) {
+/** Oldingi suhbat (oxirgi 3 ta savol-javob) — modelga matn ko'rinishida */
+export function historyBlock(history) {
+  if (!Array.isArray(history) || !history.length) return "";
+  return history.slice(-3).map((h, i) =>
+    `${i + 1}) САВОЛ: ${String(h.q || "").slice(0, 600)}\nЖАВОБ (қисқача): ${String(h.a || "").slice(0, 1200)}`).join("\n\n");
+}
+
+export function analyze(env, question, history) {
+  const hb = historyBlock(history);
+  if (hb) question = `ОЛДИНГИ СУҲБАТ:\n${hb}\n\nЯНГИ САВОЛ:\n${question}`;
   return callWithFallback(env, modelList(env.GEMINI_FAST_MODEL, env.GEMINI_FALLBACK_MODELS), ANALYZE_SYSTEM, question, 0, 20000);
 }
 
@@ -104,6 +115,7 @@ const ANSWER_SYSTEM = `Сен тажрибали судья ва юрист да
 5. Ҳажм: одатда 200–450 сўз. Оддий савол бўлса — қисқароқ, мураккаб ҳолат бўлса — батафсилроқ. Сувсиз, такрорсиз ёз.
 6. Жавобни савол қайси ёзувда (лотин/кирилл) берилган бўлса, ўша ёзувда ёз.
 7. «Бу юридик маслаҳат эмас» деб ёзма.
+8. Агар ОЛДИНГИ СУҲБАТ берилган бўлса — янги савол унинг давоми эканини ҳисобга ол: ўша мавзу ва ҳолат доирасида жавоб бер, бошқа мавзуга ўтиб кетма. Олдинги жавобда айтилганини такрорламай, янги жиҳатни оч.
 Жавобни оддий markdown матнда ёз (JSON эмас). # сарлавҳаларини ишлатма — бўлим номлари фақат **қалин** қатор.`;
 
 function sourcesBlock(sources) {
@@ -180,9 +192,11 @@ async function* streamModel(env, model, system, user, temperature, firstTokenMs)
  * Manbalar asosida javobni streaming bilan yozadi. onDelta(matn) har bir bo'lakda chaqiriladi.
  * Model birinchi bo'lakni bermasa — zaxira modelga o'tadi. Natija: { model, errors }.
  */
-export async function answerStream(env, question, sources, onDelta) {
+export async function answerStream(env, question, sources, onDelta, history) {
   const models = modelList(env.GEMINI_MODEL, env.GEMINI_FALLBACK_MODELS, env.GEMINI_FAST_MODEL);
-  const user = `САВОЛ:\n${question}\n\nМАНБАЛАР:\n\n${sourcesBlock(sources)}`;
+  const hb = historyBlock(history);
+  const user = (hb ? `ОЛДИНГИ СУҲБАТ (контекст учун; янги саволга жавоб бер, олдингисини такрорлама):\n${hb}\n\n` : "") +
+    `САВОЛ:\n${question}\n\nМАНБАЛАР:\n\n${sourcesBlock(sources)}`;
   const errors = [];
   for (const [i, model] of models.entries()) {
     for (let attempt = 0; attempt < (i === 0 ? 2 : 1); attempt++) {
