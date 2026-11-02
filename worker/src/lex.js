@@ -61,12 +61,27 @@ export function isPureRef(query) {
   return rest.length === 0;
 }
 
+// Kodekslar ro'yxati (21 ta) — Worker ishlab turgan vaqtda xotirada saqlanadi.
+// D1'da LIKE qolipi 50 baytdan oshmasligi kerak, kirill nomlar esa uzun — shuning uchun nom JS'da solishtiriladi.
+let codesCache = null, codesAt = 0;
+async function codeIds(db, name) {
+  if (!codesCache || Date.now() - codesAt > 10 * 60 * 1000) {
+    const { results } = await db.prepare("SELECT id, title FROM docs WHERE kind='kodeks'").all();
+    codesCache = results; codesAt = Date.now();
+  }
+  const n = name.toLowerCase();
+  return codesCache.filter((d) => d.title.toLowerCase().includes(n)).map((d) => d.id);
+}
+
 export async function lookupRef(db, { abbr, num }) {
   const name = CODE_ABBR[abbr] || abbr;
+  if (!name || !num) return [];
+  const ids = await codeIds(db, name);
+  if (!ids.length) return [];
   const { results } = await db
     .prepare(`SELECT c.*, d.title AS doc_title, d.requisites, d.version FROM chunks c JOIN docs d ON d.id=c.doc_id
-              WHERE d.kind='kodeks' AND c.number=? AND d.title LIKE ? ORDER BY c.id`)
-    .bind(num, `%${name}%`).all();
+              WHERE c.doc_id IN (${ids.map(() => "?").join(",")}) AND c.number=? ORDER BY c.id`)
+    .bind(...ids, num).all();
   return results;
 }
 

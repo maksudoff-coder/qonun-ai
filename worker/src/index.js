@@ -1,4 +1,4 @@
-import { parseRefs, isPureRef, lookupRef, textSearch, toCyr } from "./lex.js";
+import { parseRefs, isPureRef, lookupRef, textSearch, toCyr, CODE_ABBR, normNum } from "./lex.js";
 import { analyze, answerStream, GeminiError } from "./gemini.js";
 import { hashPassword, verifyPassword, createSession, clearCookie, currentUser } from "./auth.js";
 
@@ -177,8 +177,13 @@ async function ask(env, user, q, ctx) {
   };
   for (const r of refs) add(await lookupRef(db, r), 3);
   for (const r of plan.refs) {
-    const abbr = toCyr(String(r.code || "")).replace(/\s/g, "");
-    if (r.article) add(await lookupRef(db, { abbr, num: String(r.article).replace(/[^\d⁰¹²³⁴⁵⁶⁷⁸⁹^-]/g, "") }), 2);
+    // Model qisqartma ("ЖПК") yoki to'liq nom ("Жиноят-процессуал кодекси") qaytarishi mumkin
+    const raw = toCyr(String(r.code || "")).trim();
+    const key = raw.replace(/\s/g, "");
+    const abbr = CODE_ABBR[key] ? key : raw;
+    try {
+      if (r.article) add(await lookupRef(db, { abbr, num: normNum(String(r.article).replace(/[^\d⁰¹²³⁴⁵⁶⁷⁸⁹^-]/g, "")) }), 2);
+    } catch (e) { console.error("ref", r, e.message); }
   }
   add(await textSearch(db, plan.plenum_keywords, "plenum", 6), 6);
   add(await textSearch(db, plan.code_keywords, "kodeks", 6), 6);
