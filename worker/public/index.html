@@ -448,7 +448,7 @@ function srcHtml(s, id, n) {
 }
 
 function renderResult(r, id) {
-  const head = `<div class="who"><span class="logo"><svg class="i"><use href="#scale"/></svg></span>${r.mode === "ref" ? "AMALDAGI TAHRIR" : r.mode === "ai" ? "AI JAVOBI" : "TOPILGAN NORMALAR"}</div>`;
+  const head = `<div class="who"><span class="logo"><svg class="i"><use href="#scale"/></svg></span>${r.mode === "ref" ? "AMALDAGI TAHRIR" : r.mode === "ai" ? "AI JAVOBI" : "TOPILGAN NORMALAR"}${r.model ? `<span style="font-weight:500;letter-spacing:0;margin-left:auto">${esc(r.model)}</span>` : ""}</div>`;
   if (r.mode === "ref") {
     if (!r.sources.length) return `<div class="answer">${head}<p>${esc(r.answer)}</p></div>`;
     return `<div class="sources">${r.sources.map((s) => srcHtml(s, id)).join("")}</div>`;

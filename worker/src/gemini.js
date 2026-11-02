@@ -27,6 +27,29 @@ async function call(env, model, system, user, temperature = 0.2) {
   try { return JSON.parse(text); } catch { throw new GeminiError(502, "Modeldan noto'g'ri javob: " + text.slice(0, 200)); }
 }
 
+// Vaqtinchalik xatolar (band, limit, server xatosi) — boshqa modelga o'tish mumkin
+const RETRYABLE = new Set([429, 500, 502, 503, 504]);
+
+/** Modellar ro'yxatini navbat bilan sinaydi: asosiy model band bo'lsa — bir marta qayta urinish, keyin zaxira model. */
+async function callWithFallback(env, models, system, user, temperature) {
+  let last;
+  for (const [i, model] of models.entries()) {
+    for (let attempt = 0; attempt < (i === 0 ? 2 : 1); attempt++) {
+      try {
+        const out = await call(env, model, system, user, temperature);
+        return { ...out, _model: model };
+      } catch (e) {
+        last = e;
+        if (!(e instanceof GeminiError) || !RETRYABLE.has(e.status)) throw e;
+        if (attempt === 0 && i === 0) await new Promise((r) => setTimeout(r, 1500));
+      }
+    }
+  }
+  throw last;
+}
+
+const modelList = (...names) => [...new Set(names.flatMap((n) => String(n || "").split(",")).map((s) => s.trim()).filter(Boolean))];
+
 const ANALYZE_SYSTEM = `Сен Ўзбекистон қонунчилиги бўйича қидирув ёрдамчисисан. Фойдаланувчи савол ёки ҳолатни (лотин ёки кирилл ёзувида) ёзади.
 Вазифанг — уни қонунчилик базасидан қидириш учун тайёрлаш. Фақат JSON қайтар:
 {
@@ -41,7 +64,7 @@ const ANALYZE_SYSTEM = `Сен Ўзбекистон қонунчилиги бў�
 - Ҳеч қачон изоҳ ёзма, фақат JSON.`;
 
 export function analyze(env, question) {
-  return call(env, env.GEMINI_FAST_MODEL, ANALYZE_SYSTEM, question, 0);
+  return callWithFallback(env, modelList(env.GEMINI_FAST_MODEL, env.GEMINI_FALLBACK_MODELS), ANALYZE_SYSTEM, question, 0);
 }
 
 const ANSWER_SYSTEM = `Сен судья ёрдамчилари ва юристлар учун қонунчилик бўйича ёрдамчисан.
@@ -62,5 +85,6 @@ export function answer(env, question, sources) {
     const text = s.text.length > 5000 ? s.text.slice(0, 5000) + " …" : s.text;
     return `[${i + 1}] ${where}\n${text}`;
   }).join("\n\n---\n\n");
-  return call(env, env.GEMINI_MODEL, ANSWER_SYSTEM, `САВОЛ:\n${question}\n\nМАНБАЛАР:\n\n${block}`, 0.2);
+  return callWithFallback(env, modelList(env.GEMINI_MODEL, env.GEMINI_FALLBACK_MODELS, env.GEMINI_FAST_MODEL),
+    ANSWER_SYSTEM, `САВОЛ:\n${question}\n\nМАНБАЛАР:\n\n${block}`, 0.2);
 }

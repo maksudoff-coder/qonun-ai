@@ -22,6 +22,7 @@ database_id = "BU_YERGA_D1_ID_QOYILADI"  # GitHub Actions avtomatik almashtiradi
 # Model nomlari — kerak bo'lsa shu yerda almashtiriladi
 GEMINI_MODEL = "gemini-3.8-flash"        # javob yozuvchi model
 GEMINI_FAST_MODEL = "gemini-3.5-flash-lite" # savolni tahlil qiluvchi tez model
+GEMINI_FALLBACK_MODELS = "gemini-3.6-flash"  # asosiy model band bo'lsa (vergul bilan bir nechta)
 DAILY_LIMIT = "150"                        # bir foydalanuvchi uchun kunlik AI so'rovlar
 
 # Maxfiy qiymatlar (wrangler secret put bilan qo'yiladi, bu faylga YOZILMAYDI):

@@ -196,7 +196,7 @@ async function ask(env, user, q) {
       const warn = checkArticles(text, top);
       await log(db, user, q, "ai", top, true);
       return json({
-        mode: "ai", answer: text, warning: warn,
+        mode: "ai", answer: text, warning: warn, model: a._model,
         sources: top.map((s, i) => ({ ...pub(s), n: i + 1, used: usedIdx.includes(i + 1) })),
       });
     } catch (e) {
